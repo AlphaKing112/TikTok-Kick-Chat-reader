@@ -23,7 +23,7 @@ A real-time chat reader for TikTok and Kick livestreams. This project lets you v
 
 ## Screenshot
 
-![Screenshot of Tiktok/Kick Chat Reader](https://user-images.githubusercontent.com/59258980/153956504-c585b14b-a50e-43f0-a994-64adcaface2e.png)
+![Screenshot of Tiktok/Kick Chat Reader](https://i.imgur.com/FBZNbvZ.png)
 
 ## Setup & Installation
 
