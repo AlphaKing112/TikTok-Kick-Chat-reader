@@ -16,22 +16,20 @@
 
     <script src="connection.js"></script>
     <script src="app.js"></script>
-    <script>
-        function generateOverlay() {
-            let username = $('#uniqueIdInput').val();
-            let url = `/obs.html?username=${username}&showLikes=1&showChats=1&showGifts=1&showFollows=1&showJoins=1&bgColor=rgb(24,23,28)&fontColor=rgb(227,229,235)&fontSize=1.3em`;
-
-            if(username) {
-                window.open(url, '_blank');
-            } else {
-                alert("Enter username");
-            }
-        }
-    </script>
 </head>
 <body>
     <div class="head">
         <h1>Tiktok/Kick Chat Reader</h1>
+        <div id="liveStatusContainer" style="display:flex;align-items:center;justify-content:center;gap:18px;margin-top:10px;">
+            <div id="tiktokLiveStatus" style="display:flex;align-items:center;gap:6px;">
+                <span class="live-dot" id="tiktokDot"></span>
+                <span style="font-size:1em;">TikTok</span>
+            </div>
+            <div id="kickLiveStatus" style="display:flex;align-items:center;gap:6px;">
+                <span class="live-dot" id="kickDot"></span>
+                <span style="font-size:1em;">Kick</span>
+            </div>
+        </div>
     </div>
 
     <div class="description">
@@ -40,12 +38,12 @@
 
     <div class="inputFields">
         <p>Enter the <b>@username</b> of a user who is currently live:</p>
-        <input type="text" id="uniqueIdInput">
+        <input type="text" id="uniqueIdInput" placeholder="TikTok username (e.g. username)" autocomplete="off">
         <input type="button" id="connectButton" value="connect">
         <a href="#" onclick="generateOverlay()">Generate Overlay URL</a>
         <br>
         <p>Enter the <b>Kick channel name</b> (e.g. somechannel):</p>
-        <input type="text" id="kickLinkInput" placeholder="Kick channel name (e.g. somechannel)">
+        <input type="text" id="kickLinkInput" placeholder="Kick channel name (e.g. somechannel)" autocomplete="off">
         <input type="button" id="kickConnectButton" value="connect">
         <br>
     </div>
@@ -53,8 +51,6 @@
 
     <div id="roomStats">
       <div id="tiktokStats"></div>
-      <div id="kickStatsFollowers"></div>
-      <div id="kickStatsViewers"></div>
     </div>
 
     <table class="splitchattable">
@@ -63,8 +59,45 @@
                 <div class="chatcontainer">
                     <h3 class="containerheader">Chats</h3>
                 </div>
+                <!-- Scroll to bottom button -->
+                <button id="scrollToBottomBtn" style="position: fixed; bottom: 20px; right: 20px; background: #1db954; color: white; border: none; border-radius: 50%; width: 50px; height: 50px; font-size: 20px; cursor: pointer; display: none; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.3);" onclick="scrollToBottom()">↓</button>
             </td>
         </tr>
     </table>
+    <script>
+function generateOverlay() {
+    let tiktokUsername = $('#uniqueIdInput').val().trim();
+    let kickChannel = $('#kickLinkInput').val().trim();
+
+    let url = '/obs.html?';
+    let params = [];
+
+    if (tiktokUsername) {
+        params.push('username=' + encodeURIComponent(tiktokUsername));
+    }
+    if (kickChannel) {
+        params.push('kick=' + encodeURIComponent(kickChannel));
+    }
+
+    // Add your other overlay params as before
+    params.push('showLikes=1');
+    params.push('showChats=1');
+    params.push('showGifts=1');
+    params.push('showFollows=1');
+    params.push('showJoins=1');
+    params.push('bgColor=rgb(24,23,28)');
+    params.push('fontColor=rgb(227,229,235)');
+    params.push('fontSize=1.3em');
+
+    if (tiktokUsername || kickChannel) {
+        url += params.join('&');
+        window.open(url, '_blank');
+    } else {
+        alert("Enter TikTok username or Kick channel name");
+    }
+}
+
+
+</script>
 </body>
 </html>

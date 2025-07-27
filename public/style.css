@@ -45,8 +45,6 @@ a:hover {
     text-decoration: underline;
 }
 
-/* Removed: #roomUserText, #roomStats { width: 100%; text-align: right; } */
-
 #roomStats {
     display: block;
     text-align: center;
@@ -75,14 +73,7 @@ a:hover {
     letter-spacing: 0.5px;
 }
 
-#kickStatsFollowers, #kickStatsViewers {
-    color: #fff;
-    font-size: 1.08em;
-    margin: 4px 0;
-    text-align: center;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-}
+
 
 .splitchattable, .splitstatetable {
     width: 100%;
@@ -136,6 +127,8 @@ a:hover {
     box-shadow: 0 2px 8px #0006;
     object-fit: cover;
     transition: border 0.2s, box-shadow 0.2s;
+    background: #222;
+    padding: 0;
 }
 
 .chatcontainer div {
@@ -256,9 +249,14 @@ input[type="button"]:hover {
         padding: 6px 4px;
     }
     .miniprofilepicture {
-        height: 28px;
-        width: 28px;
+        height: 24px;
+        width: 24px;
         margin-right: 4px;
+    }
+    .chatcontainer .kick-message .miniprofilepicture {
+        height: 26px;
+        width: 26px;
+        margin-right: 6px;
     }
     input[type="text"] {
         font-size: 1em;
@@ -278,15 +276,10 @@ input[type="button"]:hover {
     .inputFields input[type="text"],
     .inputFields input[type="button"] {
         margin-bottom: 8px;
-        width: 90vw;
-        max-width: 320px;
-        min-width: 100px;
-        box-sizing: border-box;
-        text-align: center;
     }
     #roomStats {
         font-size: 1em;
-        margin: 10px auto 10px auto;
+        margin: 12px auto;
     }
     #roomStats > div {
         margin: 2px 0;
@@ -303,8 +296,14 @@ input[type="button"]:hover {
         padding: 4px 2px;
     }
     .miniprofilepicture {
+        height: 20px;
+        width: 20px;
+        margin-right: 3px;
+    }
+    .chatcontainer .kick-message .miniprofilepicture {
         height: 22px;
         width: 22px;
+        margin-right: 4px;
     }
     input[type="text"] {
         font-size: 0.95em;
@@ -318,37 +317,230 @@ input[type="button"]:hover {
     }
 }
 
-.kick-message {
-    background: transparent !important;
-    border-left: 5px solid #1db954 !important; /* green edge */
-}
-
+/* TikTok Message Styles */
 .tiktok-message {
-    background: transparent !important;
-    border-left: 5px solid #58a6ff !important; /* blue edge */
+    background: rgba(40,44,60,0.85) !important;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    padding: 8px 8px 8px 12px;
+    box-shadow: 0 1px 6px #0003;
+    display: flex;
+    align-items: center;
 }
 
-/* Kick: green left border, square avatar */
-.chatcontainer .kick-message {
-    border-left: 5px solid #1db954 !important; /* green edge */
+/* Kick Chat Styles */
+.kick-message {
+    background: rgba(40,44,60,0.85) !important;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    padding: 8px 8px 8px 12px;
+    box-shadow: 0 1px 6px #0cfc7033;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
+.kick-gift {
+    margin: 3px 0;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: bold;
+    animation: giftPulse 2s ease-in-out infinite;
+}
+
+.kick-subscription {
+    margin: 3px 0;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #a855f7, #c084fc);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: bold;
+    animation: subGlow 3s ease-in-out infinite;
+}
+
+.kick-follow {
+    margin: 3px 0;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #10b981, #34d399);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: bold;
+    animation: followSlide 1s ease-out;
+}
+
+.kick-stream-event {
+    margin: 4px 0;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+    text-align: center;
+    justify-content: center;
+    animation: streamPulse 4s ease-in-out infinite;
+}
+
+/* Badge Styles */
+.badge {
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.badge.moderator {
+    background: #ef4444;
+    color: white;
+}
+
+.badge.subscriber {
+    background: #a855f7;
+    color: white;
+}
+
+.badge.verified {
+    background: #10b981;
+    color: white;
+}
+
+/* Icon Styles */
+.gift-icon {
+    font-size: 16px;
+    animation: giftBounce 1s ease-in-out infinite;
+}
+
+.sub-icon {
+    font-size: 16px;
+    animation: subSpin 2s linear infinite;
+}
+
+.follow-icon {
+    font-size: 16px;
+    animation: followWave 1s ease-in-out;
+}
+
+.stream-icon {
+    font-size: 18px;
+}
+
+/* Animations */
+@keyframes giftPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes giftBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+@keyframes subGlow {
+    0%, 100% { box-shadow: 0 0 5px rgba(168, 85, 247, 0.5); }
+    50% { box-shadow: 0 0 15px rgba(168, 85, 247, 0.8); }
+}
+
+@keyframes subSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes followSlide {
+    0% { transform: translateX(-20px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes followWave {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-10deg); }
+    75% { transform: rotate(10deg); }
+}
+
+@keyframes streamPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+/* Sub message styling */
+.sub-message {
+    font-style: italic;
+    opacity: 0.9;
+    margin-left: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .kick-gift, .kick-subscription, .kick-follow, .kick-stream-event {
+        font-size: 12px;
+        padding: 2px 6px;
+    }
+    
+    .gift-icon, .sub-icon, .follow-icon, .stream-icon {
+        font-size: 14px;
+    }
+    
+    /* Mobile-friendly scroll to bottom button */
+    #scrollToBottomBtn {
+        bottom: 15px !important;
+        right: 15px !important;
+        width: 45px !important;
+        height: 45px !important;
+        font-size: 18px !important;
+    }
+}
+
+/* Desktop (default) */
 .chatcontainer .kick-message .miniprofilepicture {
-    border-radius: 0 !important;
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-    background: #222;
-    padding: 2px;
-    display: block;
-    box-sizing: border-box;
+    width: 32px;
+    height: 32px;
+    border: 2px solid #4cff7a !important;
     margin-right: 8px;
+    margin-left: 0;
+    border-radius: 50%;
+    object-fit: contain;
+    object-position: left center;
+    background: #222;
+    box-shadow: 0 2px 8px #0006;
+    display: block;
+    transition: border 0.2s, box-shadow 0.2s;
+    padding: 0;
 }
 
-/* TikTok: blue left border, circular avatar */
-.chatcontainer .tiktok-message {
-    border-left: 5px solid #58a6ff !important; /* blue edge */
+@media (max-width: 600px) {
+    .chatcontainer .kick-message .miniprofilepicture {
+        height: 24px;
+        width: 24px;
+        margin-right: 4px;
+    }
 }
+
+@media (max-width: 400px) {
+    .chatcontainer .kick-message .miniprofilepicture {
+        height: 20px;
+        width: 20px;
+        margin-right: 3px;
+    }
+}
+
+/* Remove Kick-specific avatar wrapper styles */
+.kick-avatar-circle { display: none !important; }
+.kick-avatar-circle .miniprofilepicture { display: none !important; }
+
+/* TikTok: circular avatar, no border */
 
 .chatcontainer .tiktok-message .miniprofilepicture {
     border-radius: 50%;
@@ -356,23 +548,23 @@ input[type="button"]:hover {
     height: 32px;
     object-fit: cover;
     margin-right: 8px;
+    border: none !important; /* Remove blue border for TikTok */
 }
 
 /* Username and message styling */
-.chatcontainer b {
-    color: #ffb300;
-    margin-right: 6px;
-    font-weight: 600;
-    font-size: 1em;
-    text-shadow: 0 1px 4px #000a;
-}
 
-.chatcontainer span {
+.tiktok-badge {
+    display: inline-block;
+    background: #58a6ff;
     color: #fff;
-    font-size: 1em;
-    word-break: break-word;
-    flex: 1;
-    transition: color 0.2s;
+    font-weight: bold;
+    font-size: 0.85em;
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin-right: 8px;
+    letter-spacing: 1px;
+    vertical-align: middle;
+    box-shadow: 0 1px 4px #0003;
 }
 
 .description {
@@ -398,4 +590,69 @@ input[type="button"]:hover {
     min-width: 100px !important;
     box-sizing: border-box !important;
     text-align: center !important;
+}
+
+ .chatcontainer .kick-message b {
+    color: #4cff7a;
+} 
+
+/* Kick badge styling */
+.kick-badge {
+    display: inline-block;
+    height: 1.2em;
+    vertical-align: middle;
+    margin-right: 2px;
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: transform 0.1s ease;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.kick-badge:hover {
+    transform: scale(1.1);
+}
+
+.kick-badge-moderator {
+    filter: drop-shadow(0 1px 2px rgba(255, 0, 0, 0.3));
+}
+
+.kick-badge-subscriber {
+    filter: drop-shadow(0 1px 2px rgba(255, 215, 0, 0.3));
+}
+
+.kick-badge-verified {
+    filter: drop-shadow(0 1px 2px rgba(0, 255, 0, 0.3));
+}
+
+/* Kick emote styling */
+.kick-emote {
+    height: 1.5em;
+    vertical-align: middle;
+    border-radius: 2px;
+    margin: 0 1px;
+    transition: transform 0.1s ease;
+}
+
+.kick-emote:hover {
+    transform: scale(1.2);
+}
+
+.live-dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #aaa;
+    box-shadow: 0 0 6px #0006;
+    margin-right: 2px;
+    border: 2px solid #222;
+    transition: background 0.3s, box-shadow 0.3s;
+}
+.live-dot.live {
+    background: #2ecc40;
+    box-shadow: 0 0 8px #2ecc40cc, 0 0 2px #000a;
+}
+.live-dot.offline {
+    background: #e74c3c;
+    box-shadow: 0 0 8px #e74c3ccc, 0 0 2px #000a;
 }

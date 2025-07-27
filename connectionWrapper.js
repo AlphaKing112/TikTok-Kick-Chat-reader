@@ -34,8 +34,14 @@ class TikTokConnectionWrapper extends EventEmitter {
         });
 
         this.connection.on('error', (err) => {
-            this.log(`Error event triggered: ${err.info}, ${err.exception}`);
-            console.error(err);
+            // Don't log errors for offline users - just emit a clean message
+            if (err.info && err.info.includes('user_not_found') || 
+                err.exception && err.exception.message && err.exception.message.includes('user_not_found')) {
+                this.log(`User is not live or not found`);
+            } else {
+                this.log(`Error event triggered: ${err.info}, ${err.exception}`);
+                console.error(err);
+            }
         })
     }
 
@@ -73,14 +79,20 @@ class TikTokConnectionWrapper extends EventEmitter {
             }
 
         }).catch((err) => {
-            this.log(`${isReconnect ? 'Reconnect' : 'Connection'} failed, ${err}`);
+            // Clean up error messages for offline users
+            let cleanError = err.toString();
+            if (cleanError.includes('user_not_found') || cleanError.includes('Failed to retrieve room_id')) {
+                cleanError = 'User is not currently live. Please try a different username.';
+            }
+            
+            this.log(`${isReconnect ? 'Reconnect' : 'Connection'} failed: ${cleanError}`);
 
             if (isReconnect) {
                 // Schedule the next reconnect attempt
-                this.scheduleReconnect(err);
+                this.scheduleReconnect(cleanError);
             } else {
-                // Notify client
-                this.emit('disconnected', err.toString());
+                // Notify client with clean message
+                this.emit('disconnected', cleanError);
             }
         })
     }

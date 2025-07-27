@@ -1,9 +1,22 @@
 {
+  "name": "tiktok-chat-reader",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
   "dependencies": {
     "@retconned/kick-js": "^0.5.3",
+    "axios": "^1.6.0",
     "dotenv": "^16.0.0",
     "express": "^4.17.2",
     "socket.io": "^4.4.1",
-    "tiktok-live-connector": "^1.2.3"
+    "tiktok-live-connector": "^1.2.3",
+    "vercel": "^44.6.3",
+    "ws": "^8.14.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }

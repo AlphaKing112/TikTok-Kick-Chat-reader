@@ -1,13 +1,24 @@
 require('dotenv').config();
 
+// Set environment variables to avoid Puppeteer issues in Vercel
+process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
+process.env.PUPPETEER_ARGS = '--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-zygote --single-process --disable-gpu';
+
 const express = require('express');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { TikTokConnectionWrapper, getGlobalConnectionCount } = require('./connectionWrapper');
 const { clientBlocked } = require('./limiter');
 const axios = require('axios');
-const WebSocket = require('ws');
-const { createClient: createKickClient } = require('@retconned/kick-js');
+const { createClient } = require('@retconned/kick-js');
+const KickChatFallback = require('./kick-chat-fallback');
+
+
+// Global error handler for Puppeteer errors
+process.on('unhandledRejection', (reason, promise) => {
+    console.log(`[Global] Unhandled Rejection at:`, promise, 'reason:', reason);
+    // Don't crash the app, just log the error
+});
 
 const app = express();
 const httpServer = createServer(app);
@@ -20,16 +31,31 @@ const io = new Server(httpServer, {
 });
 
 
+
+// Serve static files
+app.use(express.static('public'));
+app.use(express.json());
+
+
+
+
+
+
 io.on('connection', (socket) => {
-    let tiktokConnectionWrapper;
-    let kickWs = null;
-    let kickRoomId = null;
-    let kickDisconnecting = false;
+    let tiktokConnectionWrapper = null;
+    let kickChatClient = null;
     let kickSessionId = 0;
 
     console.info('New connection from origin', socket.handshake.headers['origin'] || socket.handshake.headers['referer']);
 
+    socket.on('testEvent', (data) => {
+        console.log('[Test] testEvent received:', data);
+        socket.emit('testEvent', { message: 'Backend received your test event!', timestamp: new Date().toISOString() });
+    });
+
+    // TIKTOK CHAT HANDLING
     socket.on('setUniqueId', (uniqueId, options) => {
+        console.log(`[TikTok] Attempting to connect to: ${uniqueId}`);
 
         // Prohibit the client from specifying these options (for security reasons)
         if (typeof options === 'object' && options) {
@@ -53,10 +79,35 @@ io.on('connection', (socket) => {
 
         // Connect to the given username (uniqueId)
         try {
+            // Disconnect any existing connection first
+            if (tiktokConnectionWrapper) {
+                tiktokConnectionWrapper.disconnect();
+            }
             tiktokConnectionWrapper = new TikTokConnectionWrapper(uniqueId, options, true);
+            
+            // Add error handler to prevent crashes
+            tiktokConnectionWrapper.on('error', (error) => {
+                // Don't log detailed errors for offline users
+                if (error.info && error.info.includes('user_not_found') || 
+                    error.exception && error.exception.message && error.exception.message.includes('user_not_found')) {
+                    console.log(`[TikTok] User ${uniqueId} is not live or not found`);
+                } else {
+                    console.error(`[TikTok] Error for ${uniqueId}:`, error);
+                }
+                socket.emit('tiktokDisconnected', `User is not currently live. Please try a different username.`);
+            });
+            
             tiktokConnectionWrapper.connect();
         } catch (err) {
-            socket.emit('tiktokDisconnected', err.toString());
+            // Clean up error messages for offline users
+            let cleanError = err.toString();
+            if (cleanError.includes('user_not_found') || cleanError.includes('Failed to retrieve room_id')) {
+                console.log(`[TikTok] User ${uniqueId} is not live or not found`);
+                cleanError = 'User is not currently live. Please try a different username.';
+            } else {
+                console.error(`[TikTok] Connection error for ${uniqueId}:`, err);
+            }
+            socket.emit('tiktokDisconnected', cleanError);
             return;
         }
 
@@ -83,138 +134,264 @@ io.on('connection', (socket) => {
         tiktokConnectionWrapper.connection.on('subscribe', msg => socket.emit('subscribe', msg));
     });
 
-    socket.on('testEvent', (data) => {
-        console.log('[Test] testEvent received:', data);
-    });
-
-    // KICK CHAT HANDLING
+    // KICK CHAT HANDLING - Direct WebSocket approach (no Puppeteer)
     const KICK_HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     };
+    
     socket.on('setKickLink', async (kickLink) => {
-        console.log('[Kick] setKickLink called for:', kickLink);
-        // Disconnect previous client
-        if (socket.kickClient) {
-            try {
-                socket.kickClient.removeAllListeners();
-                socket.kickClient.disconnect();
-            } catch (e) {}
-            socket.kickClient = null;
-        }
-        // Increment session ID
-        kickSessionId += 1;
-        const thisSessionId = kickSessionId;
-        socket.currentKickSessionId = thisSessionId;
-        // Extract the channel slug from the link or use as-is if already a slug
-        let channelSlug = kickLink;
-        const match = kickLink.match(/kick\.com\/([A-Za-z0-9_]+)/i);
-        if (match) {
-            channelSlug = match[1];
-        }
-        if (!channelSlug) {
-            socket.emit('kickDisconnected', 'Invalid Kick link');
-            return;
-        }
-        channelSlug = channelSlug.toLowerCase();
-        console.log('[Kick] Using channelSlug:', channelSlug);
-
-        // Fetch Kick channel stats
-        let followers = null, viewers = null;
-        let channelId = null;
         try {
-            // Use v1 for followers (browser-like endpoint)
-            const v1Url = `https://kick.com/api/v1/channels/${channelSlug}`;
-            console.log('[Kick] Fetching followers from:', v1Url);
-            const res = await axios.get(v1Url, { headers: KICK_HEADERS });
-            console.log('[Kick] v1 Channel API response:', res.data); // Debug log
-            followers = res.data.followersCount ?? null;
-            channelId = res.data.id ?? res.data.channel_id ?? null;
-        } catch (e) {
-            console.log('[Kick] Could not fetch v1 channel stats:', e.message);
-        }
+            // Disconnect previous Kick client
+            if (kickChatClient) {
+                try {
+                    kickChatClient.disconnect();
+                } catch (e) {}
+                kickChatClient = null;
+            }
+        
+            // Increment session ID
+            kickSessionId += 1;
+            const thisSessionId = kickSessionId;
+            socket.currentKickSessionId = thisSessionId;
+            
+            // Extract the channel slug from the link or use as-is if already a slug
+            let channelSlug = kickLink;
+            const match = kickLink.match(/kick\.com\/([A-Za-z0-9_]+)/i);
+            if (match) {
+                channelSlug = match[1];
+            }
+            if (!channelSlug) {
+                socket.emit('kickDisconnected', 'Invalid Kick link');
+                return;
+            }
+            channelSlug = channelSlug.toLowerCase();
 
-        // Use v2 livestreams for viewers
-        if (channelId) {
+            console.log(`[Kick] Attempting to connect to ${channelSlug} (original input: ${kickLink})`);
+
+
+
+            // Fall back to public API
             try {
-                const v2Url = `https://kick.com/api/v2/livestreams/${channelId}`;
-                console.log('[Kick] Fetching viewers from:', v2Url);
-                const liveRes = await axios.get(v2Url, { headers: KICK_HEADERS });
-                console.log('[Kick] v2 Livestream API response:', liveRes.data);
-                viewers = liveRes.data.viewer_count ?? null;
-            } catch (e) {
-                console.log('[Kick] Could not fetch v2 livestream stats:', e.message);
+                const channelUrl = `https://kick.com/api/v1/channels/${channelSlug}`;
+                const response = await axios.get(channelUrl, { 
+                    headers: {
+                        ...KICK_HEADERS,
+                        'Accept': 'application/json'
+                    },
+                    timeout: 10000 // Increased timeout
+                });
+                const channelData = response.data;
+                
+                const followers = channelData.followersCount ?? null;
+                const viewers = channelData.livestream?.viewer_count ?? null;
+                
+                // Emit connection event
+                socket.emit('kickConnected', { channelSlug });
+                
+                console.log(`[Kick] Successfully connected to ${channelSlug} using public API`);
+                
+                // Start Kick chat client
+                startKickChatClient(channelSlug, thisSessionId);
+                
+            } catch (error) {
+                console.log(`[Kick] Public API failed for ${channelSlug}:`, error.message);
+                
+                // Be more lenient - still allow connection even if API fails
+                // This could happen if the channel exists but API is having issues
+                console.log(`[Kick] Proceeding with connection despite API failure`);
+                socket.emit('kickConnected', { channelSlug });
+                
+                // Start Kick chat client anyway
+                startKickChatClient(channelSlug, thisSessionId);
             }
+            
+        } catch (error) {
+            console.error(`[Kick] Error setting up Kick connection:`, error);
+            socket.emit('kickDisconnected', `Error setting up connection: ${error.message}`);
         }
-
-        // Emit stats to frontend
-        socket.emit('kickStats', { followers, viewers });
-
-        // Emit followers and viewers as separate events
-        if (followers !== null) {
-            socket.emit('kickFollowers', { followers });
-            console.log('[Kick] Emitted kickFollowers:', followers);
-        }
-        if (viewers !== null) {
-            socket.emit('kickViewers', { viewers });
-            console.log('[Kick] Emitted kickViewers:', viewers);
-        }
-
-        console.log('[Kick] Connecting to Kick chat for channel:', channelSlug);
-        // Create a Kick chat client
-        const kickClient = createKickClient(channelSlug, { logger: true, readOnly: true });
-        socket.kickClient = kickClient;
-        // Listen for chat messages
-        kickClient.on('ChatMessage', (msg) => {
-            // Only emit if this is the current session
-            if (socket.currentKickSessionId !== thisSessionId) return;
-            console.log('[Kick] Full message:', msg); // Debug: print full message
-            let color = msg.identity?.color || null;
-            if (!color) {
-                color = getRandomColor(msg.sender.username);
-            }
-            console.log('[Kick] Sending color for', msg.sender.username, ':', color);
-            socket.emit('kickChat', {
-                sender: {
-                    username: msg.sender.username,
-                    profile_picture: msg.sender.profilePic || msg.sender.profile_picture || msg.sender.profile_picture_url || null,
-                    profilePic: msg.sender.profilePic || null,
-                    profile_picture_url: msg.sender.profile_picture_url || null,
-                    color: color
-                },
-                content: msg.content,
-                emotes: msg.emotes || [], // Pass emotes array if present
-                channelSlug: channelSlug,
-                sessionId: thisSessionId
-            });
-        });
-        // Handle connection events
-        kickClient.on('ready', () => {
-            console.log('[Kick] Connected to Kick chat for channel:', channelSlug);
-            socket.emit('kickConnected', { channelSlug });
-        });
-        kickClient.on('disconnected', () => {
-            console.log('[Kick] Disconnected from Kick chat for channel:', channelSlug);
-            socket.emit('kickDisconnected', 'Kick chat disconnected');
-        });
-        // Clean up on socket disconnect
-        socket.on('disconnect', () => {
-            if (socket.kickClient) {
-                try { socket.kickClient.disconnect(); } catch (e) {}
-                socket.kickClient = null;
-            }
-        });
     });
 
+    // Kick chat client setup
+    async function startKickChatClient(channelSlug, sessionId) {
+        try {
+            console.log(`[Kick] Starting chat client for ${channelSlug} in read-only mode`);
+            
+            // Try official library with latest Puppeteer configuration
+            try {
+                console.log(`[Kick] Attempting to use official library for ${channelSlug}`);
+                
+                // Use the latest Puppeteer configuration from the documentation
+                kickChatClient = createClient(channelSlug, {
+                    logger: false,
+                    readOnly: true,
+                    puppeteerOptions: {
+                        headless: true,
+                        args: [
+                            '--no-sandbox',
+                            '--disable-setuid-sandbox',
+                            '--disable-dev-shm-usage',
+                            '--disable-accelerated-2d-canvas',
+                            '--no-first-run',
+                            '--no-zygote',
+                            '--single-process',
+                            '--disable-gpu',
+                            '--disable-background-timer-throttling',
+                            '--disable-backgrounding-occluded-windows',
+                            '--disable-renderer-backgrounding'
+                        ]
+                    }
+                });
+                
+                console.log(`[Kick] Successfully created official client for ${channelSlug}`);
+                
+            } catch (officialError) {
+                console.log(`[Kick] Official library failed for ${channelSlug}:`, officialError.message);
+                console.log(`[Kick] Falling back to custom client for ${channelSlug}`);
+                
+                // Fall back to custom client
+                kickChatClient = new KickChatFallback(channelSlug);
+                kickChatClient.isFallback = true;
+                await kickChatClient.connect();
+            }
+            
+            // Set up event handlers
+            kickChatClient.on('ChatMessage', (msg) => {
+                if (socket.currentKickSessionId !== sessionId) {
+                    return;
+                }
+                
+                console.log(`[Kick] Chat message received:`, msg);
+                
+                // Enhanced badge processing
+                let badges = [];
+                if (msg.badges && Array.isArray(msg.badges)) {
+                    badges = msg.badges;
+                } else if (msg.sender && msg.sender.badges && Array.isArray(msg.sender.badges)) {
+                    badges = msg.sender.badges;
+                }
+                
+                // Add role-based badges
+                if (msg.sender) {
+                    if (msg.sender.isModerator) {
+                        badges.push({
+                            name: 'moderator',
+                            title: 'Moderator',
+                            icon_url: 'https://kick.com/img/badges/moderator.svg',
+                            type: 'moderator'
+                        });
+                    }
+                    if (msg.sender.isSubscriber) {
+                        badges.push({
+                            name: 'subscriber',
+                            title: 'Subscriber',
+                            icon_url: 'https://kick.com/img/badges/subscriber.svg',
+                            type: 'subscriber'
+                        });
+                    }
+                    if (msg.sender.isVerified) {
+                        badges.push({
+                            name: 'verified',
+                            title: 'Verified',
+                            icon_url: 'https://kick.com/img/badges/verified.svg',
+                            type: 'verified'
+                        });
+                    }
+                }
+                
+                socket.emit('kickChat', {
+                    sender: {
+                        ...msg.sender,
+                        badges: badges
+                    },
+                    content: msg.content,
+                    emotes: msg.emotes || [],
+                    badges: badges,
+                    channelSlug: channelSlug,
+                    sessionId: sessionId,
+                    timestamp: msg.timestamp || Date.now(),
+                    messageId: msg.id
+                });
+            });
+            
+            kickChatClient.on('Gift', (gift) => {
+                if (socket.currentKickSessionId !== sessionId) {
+                    return;
+                }
+                
+                console.log(`[Kick] Gift received:`, gift);
+                socket.emit('kickGift', {
+                    sender: gift.sender,
+                    gift: gift.gift,
+                    channelSlug: channelSlug,
+                    sessionId: sessionId
+                });
+            });
+            
+            kickChatClient.on('Subscription', (sub) => {
+                if (socket.currentKickSessionId !== sessionId) {
+                    return;
+                }
+                
+                console.log(`[Kick] Subscription received:`, sub);
+                socket.emit('kickSubscription', {
+                    sender: sub.sender,
+                    subscription: sub.subscription,
+                    channelSlug: channelSlug,
+                    sessionId: sessionId
+                });
+            });
+            
+            kickChatClient.on('Follow', (follow) => {
+                if (socket.currentKickSessionId !== sessionId) {
+                    return;
+                }
+                
+                console.log(`[Kick] Follow received:`, follow);
+                socket.emit('kickFollow', {
+                    sender: follow.sender,
+                    channelSlug: channelSlug,
+                    sessionId: sessionId
+                });
+            });
+            
+            kickChatClient.on('StreamStart', (streamData) => {
+                console.log(`[Kick] Stream started:`, streamData);
+                socket.emit('kickStreamStart', {
+                    channelSlug: channelSlug,
+                    sessionId: sessionId
+                });
+            });
+            
+            kickChatClient.on('StreamEnd', (streamData) => {
+                console.log(`[Kick] Stream ended:`, streamData);
+                socket.emit('kickStreamEnd', {
+                    channelSlug: channelSlug,
+                    sessionId: sessionId
+                });
+            });
+            
+            // Connect the client
+            console.log(`[Kick] Chat client started successfully for ${channelSlug}`);
+            
+        } catch (error) {
+            console.error(`[Kick] Failed to start chat client:`, error.message);
+            // Don't emit disconnect, just log the error and continue
+            console.log(`[Kick] Continuing without chat client for ${channelSlug}`);
+        }
+    }
+
     socket.on('disconnect', () => {
+        // Clean up TikTok connection
         if (tiktokConnectionWrapper) {
             tiktokConnectionWrapper.disconnect();
         }
-        if (kickWs) {
-            kickDisconnecting = true;
-            kickWs.close();
-            kickWs = null;
-            kickRoomId = null;
-            kickDisconnecting = false;
+        
+        // Clean up Kick chat client
+        if (kickChatClient) {
+            try {
+                kickChatClient.disconnect();
+            } catch (e) {}
+            kickChatClient = null;
         }
     });
 });
@@ -224,41 +401,54 @@ setInterval(() => {
     io.emit('statistic', { globalConnectionCount: getGlobalConnectionCount() });
 }, 5000)
 
-// Backend caching for Kick stats
-let kickStatsCache = {};
-let lastFetchTime = {};
 
-async function fetchKickStats(channel) {
-  const url = `https://kick.com/api/v1/channels/${channel}`;
-  const res = await axios.get(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'application/json, text/plain, */*',
-      'Referer': `https://kick.com/${channel}`,
-    }
-  });
-  return res.data;
-}
 
-app.get('/api/kick-stats/:channel', async (req, res) => {
+// Test endpoint to verify Kick API connectivity
+app.get('/api/kick-test/:channel', async (req, res) => {
   const channel = req.params.channel;
-  const now = Date.now();
-  // Only fetch if not cached or cache is older than 30s
-  if (!kickStatsCache[channel] || now - lastFetchTime[channel] > 30000) {
-    try {
-      kickStatsCache[channel] = await fetchKickStats(channel);
-      lastFetchTime[channel] = now;
-    } catch (e) {
-      console.error('Failed to fetch stats for', channel, e.message);
-      return res.status(500).json({ error: 'Failed to fetch stats', details: e.message });
-    }
+  try {
+    console.log(`[Test] Testing Kick API for channel: ${channel}`);
+    const url = `https://kick.com/api/v1/channels/${channel}`;
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Referer': `https://kick.com/${channel}`,
+      }
+    });
+    const channelInfo = response.data;
+    res.json({ 
+      success: true, 
+      channel: channel,
+      data: channelInfo,
+      message: 'Kick API is working'
+    });
+  } catch (error) {
+    console.error(`[Test] Kick API test failed for ${channel}:`, error.message);
+    res.status(500).json({ 
+      success: false, 
+      channel: channel,
+      error: error.message,
+      message: 'Kick API test failed'
+    });
   }
-  res.json(kickStatsCache[channel]);
 });
 
-// Remove the custom route for index2.html
+
+
 // Serve frontend files
 app.use(express.static('public'));
+
+// Global error handlers to prevent crashes
+process.on('uncaughtException', (error) => {
+    console.error('[Global] Uncaught Exception:', error);
+    // Don't exit the process, just log the error
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[Global] Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't exit the process, just log the error
+});
 
 // Start http listener
 const port = process.env.PORT || 8081;
@@ -274,4 +464,4 @@ function getRandomColor(username) {
     // Generate pastel color
     const hue = Math.abs(hash) % 360;
     return `hsl(${hue}, 70%, 70%)`;
-}
+} 

@@ -71,6 +71,10 @@ typings/
 # dotenv environment variables file
 .env
 .env.test
+.env.local
+.env.production
+.env.development
+.env.example
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -102,3 +106,29 @@ dist
 
 # TernJS port file
 .tern-port
+
+.vercel
+
+# Railway deployment configuration
+railway.json
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and temporary files
+*.tmp
+*.temp
+logs/
