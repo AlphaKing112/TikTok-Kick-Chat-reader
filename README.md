@@ -2,6 +2,10 @@
 
 A real-time chat reader for TikTok and Kick livestreams. This project lets you view and merge chat messages from both platforms, with stats and a modern, mobile-friendly UI. Perfect for streamers, moderators, and viewers who want to monitor multiple chat platforms simultaneously.
 
+## Screenshot
+
+![Screenshot of Tiktok/Kick Chat Reader](https://i.imgur.com/QFqfrLN.png)
+
 ## 🌟 Key Features
 
 - **Multi-Platform Chat**: Merge TikTok and Kick chat in one interface
@@ -74,10 +78,6 @@ A real-time chat reader for TikTok and Kick livestreams. This project lets you v
 ```
 http://yourdomain.com/obs.html?username=someuser&kick=somechannel&showLikes=1&showGifts=1&bgColor=rgb(0,0,0)&fontColor=rgb(255,255,255)&fontSize=1.2em
 ```
-
-## Screenshot
-
-![Screenshot of Tiktok/Kick Chat Reader](https://i.imgur.com/QFqfrLN.png)
 
 ## 🌐 External Access with No-IP
 
