@@ -252,11 +252,14 @@ async function fetchKickBolbalEmotes() {
 
 // Function to render user badges
 function renderKickBadges(badges) {
+    console.log('[Badge Debug] renderKickBadges called with:', badges);
     if (!badges || !Array.isArray(badges) || badges.length === 0) {
+        console.log('[Badge Debug] No badges to render');
         return '';
     }
     
     return badges.map(badge => {
+        console.log('[Badge Debug] Processing badge:', badge);
         const iconUrl = badge.icon_url || badge.iconUrl || badge.url;
         const name = badge.name || badge.type || 'Badge';
         const title = badge.title || badge.name || badge.type || 'Badge';
@@ -277,9 +280,77 @@ function renderKickBadges(badges) {
                 case 'verified':
                     finalIconUrl = 'https://kick.com/img/badges/verified.svg';
                     break;
+                case 'partner':
+                case 'partnered':
+                    finalIconUrl = 'https://kick.com/img/badges/partner.svg';
+                    break;
+                case 'vip':
+                    finalIconUrl = 'https://kick.com/img/badges/vip.svg';
+                    break;
+                case 'founder':
+                    finalIconUrl = 'https://kick.com/img/badges/founder.svg';
+                    break;
+                case 'broadcaster':
+                case 'streamer':
+                    finalIconUrl = 'https://kick.com/img/badges/broadcaster.svg';
+                    break;
+                case 'admin':
+                case 'administrator':
+                    finalIconUrl = 'https://kick.com/img/badges/admin.svg';
+                    break;
+                case 'staff':
+                    finalIconUrl = 'https://kick.com/img/badges/staff.svg';
+                    break;
+                case 'premium':
+                    finalIconUrl = 'https://kick.com/img/badges/premium.svg';
+                    break;
+                case 'supporter':
+                    finalIconUrl = 'https://kick.com/img/badges/supporter.svg';
+                    break;
+                case 'donator':
+                case 'donor':
+                    finalIconUrl = 'https://kick.com/img/badges/donator.svg';
+                    break;
+                case 'early_supporter':
+                case 'earlysupporter':
+                    finalIconUrl = 'https://kick.com/img/badges/early_supporter.svg';
+                    break;
+                case 'beta_tester':
+                case 'betatester':
+                    finalIconUrl = 'https://kick.com/img/badges/beta_tester.svg';
+                    break;
+                case 'hype_train':
+                case 'hypetrain':
+                    finalIconUrl = 'https://kick.com/img/badges/hype_train.svg';
+                    break;
+                case 'cheer':
+                case 'cheerer':
+                    finalIconUrl = 'https://kick.com/img/badges/cheer.svg';
+                    break;
+                case 'gifter':
+                case 'gift_giver':
+                    finalIconUrl = 'https://kick.com/img/badges/gifter.svg';
+                    break;
+                case 'raider':
+                case 'raid':
+                    finalIconUrl = 'https://kick.com/img/badges/raider.svg';
+                    break;
+                case 'host':
+                case 'hosting':
+                    finalIconUrl = 'https://kick.com/img/badges/host.svg';
+                    break;
+                case 'bot':
+                case 'automod':
+                    finalIconUrl = 'https://kick.com/img/badges/bot.svg';
+                    break;
+                case 'custom':
+                case 'custom_badge':
+                    finalIconUrl = 'https://kick.com/img/badges/custom.svg';
+                    break;
                 default:
-                    // Skip badges without icons
-                    return '';
+                    // For unknown badges, try to use a generic badge icon
+                    finalIconUrl = 'https://kick.com/img/badges/default.svg';
+                    break;
             }
         }
         
@@ -619,7 +690,7 @@ function handleEventLive(typeEvent, data) {
                 `<div>
                     <img class="miniprofilepicture" src="${data.profilePictureUrl || ''}">
                     <b>${data.nickname || data.uniqueId}:</b>
-                    <span>❤️ sent a like</span>
+                    <span style="color: red;">❤️ liked the stream</span>
                 </div>`
             );
             const chatEl = container[0];
@@ -791,25 +862,25 @@ $(document).ready(function() {
 
         // --- Auto-fetch Kick stats on connect and start auto-refresh ---
         function fetchKickStatsForConnected() {
-    const user = currentKickChannel;
+            const user = currentKickChannel;
     if (!user) {
         return;
     }
 
-    const url = `https://kick.com/api/v1/channels/${user}`;
+            const url = `https://kick.com/api/v1/channels/${user}`;
 
-    fetch(url)
+            fetch(url)
         .then(res => {
             return res.text();
         })
-        .then(text => {
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch (e) {
+                .then(text => {
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
                 console.error('[KickStats] Parse error:', e);
-                return;
-            }
+                        return;
+                    }
 
             // Store stream data globally for duration counter
             window.currentKickStreamData = data;
@@ -916,7 +987,7 @@ $(document).ready(function() {
                         const durationDisplay = `<b style="color:#1db954">Duration:</b> <span style="color:#fff">${window.currentStreamDuration}</span>`;
                         $('#kickStats').html(`Could not fetch Kick stats. &nbsp; ${durationDisplay}`);
                     } else {
-                        $('#kickStats').html('Could not fetch Kick stats.');
+                    $('#kickStats').html('Could not fetch Kick stats.');
                     }
                 });
         }
@@ -970,7 +1041,11 @@ $(document).ready(function() {
         const messageHtml = renderKickMessage(msg.content, msg.emotes);
         
         // Enhanced badge rendering
+        console.log('[Badge Debug] Message data:', msg);
+        console.log('[Badge Debug] Sender badges:', msg.sender?.badges);
+        console.log('[Badge Debug] Direct badges:', msg.badges);
         const badgeHtml = renderKickBadges(msg.sender?.badges || msg.badges);
+        console.log('[Badge Debug] Rendered badge HTML:', badgeHtml);
         
         const kickMessage = `<div class="kick-message">
             <img class="miniprofilepicture" src="${profilePic}" onerror="this.onerror=null;this.src='kick-logo.png';">
@@ -1007,7 +1082,7 @@ $(document).ready(function() {
         const doScroll = isMainChat ? shouldAutoScroll : isChatScrolledToBottom();
         
         const giftMessage = `<div class="kick-gift">
-            <img class="miniprofilepicture" src="${profilePic}" onerror="this.onerror=null;this.src='kick-logo.png';">
+                <img class="miniprofilepicture" src="${profilePic}" onerror="this.onerror=null;this.src='kick-logo.png';">
             <span class="gift-icon">🎁</span>
             <b style="color:${gift.sender?.color || getRandomColor(gift.sender?.username || '')} !important">${gift.sender?.username}</b>
             <span>sent ${gift.gift.count}x ${gift.gift.name}</span>
