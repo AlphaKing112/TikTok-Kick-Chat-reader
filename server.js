@@ -804,7 +804,6 @@ io.on('connection', (socket) => {
 
         twitchChatClient.on('messagedeleted', (channel, username, deletedMessage, userstate) => {
             const msgId = userstate['target-msg-id'];
-            socket.emit('twitchMessageDeleted', { username, messageId: msgId });
             io.emit('twitchMessageDeleted', { username, messageId: msgId });
         });
 

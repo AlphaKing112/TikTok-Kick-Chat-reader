@@ -2730,8 +2730,16 @@ $(document).click(function(event) {
     }
 });
 
+const recentNotificationSet = new Set();
+
 function showNotification(message, type = 'info') {
     if (window.location.pathname.includes('obs.html') || window.location.pathname.includes('poll.html')) return;
+    
+    // Prevent duplicate toasts within 2 seconds
+    const notifKey = `${type}:${message}`;
+    if (recentNotificationSet.has(notifKey)) return;
+    recentNotificationSet.add(notifKey);
+    setTimeout(() => recentNotificationSet.delete(notifKey), 2000);
     
     let color = '#ffffff';
     let borderColor = '#58a6ff';
