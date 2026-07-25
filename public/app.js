@@ -2868,6 +2868,20 @@ window.moderateKick = function(action, duration = null) {
     if (!currentKickContextMenuData) return;
     
     const { userId, messageId, username } = currentKickContextMenuData;
+
+    if (!window.authorizedKickUser) {
+        showNotification('Kick Moderation Failed: You must authorize Kick first!', 'error');
+        return;
+    }
+
+    const currentChan = (typeof currentKickChannel !== 'undefined' && currentKickChannel) ? currentKickChannel : '';
+    const authUser = (window.authorizedKickUser || '').toLowerCase();
+    const activeChan = currentChan.toLowerCase();
+
+    if (authUser && activeChan && authUser !== activeChan) {
+        showNotification(`Kick Moderation Failed: You are authorized as '${window.authorizedKickUser}', but connected to '${currentChan}'. You can only moderate your own channel.`, 'error');
+        return;
+    }
     
     let reason = '';
     if (action === 'ban' || action === 'timeout') {
@@ -2887,7 +2901,8 @@ window.moderateKick = function(action, duration = null) {
             username: username,
             messageId: messageId,
             duration: duration,
-            reason: reason
+            reason: reason,
+            channel: currentChan
         })
     }).then(async res => {
         const data = await res.json();

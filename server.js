@@ -1242,12 +1242,30 @@ app.patch('/api/kick/channel', async (req, res) => {
 
 // KICK MODERATION ENDPOINT
 app.post('/api/kick/moderate', async (req, res) => {
-    const { action, targetUserId, username, messageId, duration, reason } = req.body;
+    const { action, targetUserId, username, messageId, duration, reason, channel } = req.body;
     if (!process.env.KICK_ACCESS_TOKEN) {
         return res.status(401).json({ error: true, message: 'Kick access token missing. Please authorize Kick first!' });
     }
 
     try {
+        // Fetch current user from Kick API to verify authorized channel name
+        let authorizedUsername = null;
+        try {
+            const userRes = await axios.get('https://api.kick.com/public/v1/users', {
+                headers: { 'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}` }
+            });
+            const userData = userRes.data;
+            const u = Array.isArray(userData.data) ? userData.data[0] : (userData.data || userData);
+            authorizedUsername = u?.username || u?.name || null;
+        } catch (e) {}
+
+        if (channel && authorizedUsername && channel.toLowerCase() !== authorizedUsername.toLowerCase()) {
+            return res.status(403).json({
+                error: true,
+                message: `Moderation failed: You are authorized as '${authorizedUsername}', but currently viewing channel '${channel}'. You can only moderate your own channel.`
+            });
+        }
+
         if (action === 'delete') {
             if (!messageId) {
                 return res.status(400).json({ error: true, message: 'Message ID required for deletion' });
