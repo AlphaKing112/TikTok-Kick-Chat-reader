@@ -3053,12 +3053,11 @@ function selectStreamPlatform(platform) {
     if (platform === 'twitch') {
         $('#streamPlatformTwitchBtn').css({ background: '#9146FF', color: 'white', border: 'none' });
         $('#streamPlatformKickBtn').css({ background: '#1c1e29', color: '#53fc18', border: '1px solid #53fc18' });
-        $('#categoryContainer').show();
     } else {
         $('#streamPlatformKickBtn').css({ background: '#53fc18', color: 'black', border: 'none' });
         $('#streamPlatformTwitchBtn').css({ background: '#1c1e29', color: '#9146FF', border: '1px solid #9146FF' });
-        $('#categoryContainer').hide();
     }
+    $('#categoryContainer').show();
     fetchCurrentStreamInfo();
 }
 
@@ -3076,6 +3075,8 @@ function fetchCurrentStreamInfo() {
             .then(data => {
                 if (data.error) throw new Error(data.message);
                 $('#streamTitleInput').val(data.title || '');
+                $('#streamGameInput').val(data.category_name || '');
+                $('#streamGameIdInput').val(data.category_id || '');
                 enableInputs();
             })
             .catch(err => {
@@ -3118,7 +3119,11 @@ $(document).on('input', '#streamGameInput', function() {
     }
     
     gameSearchTimeout = setTimeout(() => {
-        fetch('/api/twitch/search-categories?query=' + encodeURIComponent(query))
+        const searchUrl = (currentStreamPlatform === 'kick') 
+            ? '/api/kick/categories/search?q=' + encodeURIComponent(query) 
+            : '/api/twitch/search-categories?query=' + encodeURIComponent(query);
+
+        fetch(searchUrl)
             .then(res => res.json())
             .then(data => {
                 if (data.error) return;
@@ -3127,7 +3132,10 @@ $(document).on('input', '#streamGameInput', function() {
                 if (data.data && data.data.length > 0) {
                     data.data.forEach(game => {
                         const div = $('<div class="game-search-item"></div>');
-                        div.html(`<img src="${game.box_art_url}" style="width:24px;height:32px;vertical-align:middle;margin-right:8px;"><span>${game.name}</span>`);
+                        const imgStyle = (currentStreamPlatform === 'kick') 
+                            ? 'width:28px;height:28px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:8px;'
+                            : 'width:24px;height:32px;vertical-align:middle;margin-right:8px;';
+                        div.html(`<img src="${game.box_art_url}" style="${imgStyle}"><span>${game.name}</span>`);
                         div.on('click', () => {
                             $('#streamGameInput').val(game.name);
                             $('#streamGameIdInput').val(game.id);
@@ -3226,20 +3234,37 @@ function saveStreamInfo() {
     saveBtn.text('Saving...').prop('disabled', true);
 
     if (currentStreamPlatform === 'kick') {
-        fetch('/api/kick/channel', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: title })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.error) throw new Error(data.message);
-            showNotification('Kick Stream Title updated successfully!', 'success');
-            $('#channelActionsModal').hide();
-            $('#channelActionsBackdrop').hide();
-        })
-        .catch(err => showNotification('Failed to update Kick title: ' + err.message, 'error'))
-        .finally(() => saveBtn.text(oldBtnText).prop('disabled', false));
+        const submitSaveKick = (finalCategoryId) => {
+            fetch('/api/kick/channel', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: title, category_id: finalCategoryId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) throw new Error(data.message);
+                showNotification('Kick Stream Info updated successfully!', 'success');
+                $('#channelActionsModal').hide();
+                $('#channelActionsBackdrop').hide();
+            })
+            .catch(err => showNotification('Failed to update Kick info: ' + err.message, 'error'))
+            .finally(() => saveBtn.text(oldBtnText).prop('disabled', false));
+        };
+
+        if (gameNameInput && !gameId) {
+            fetch('/api/kick/categories/search?q=' + encodeURIComponent(gameNameInput))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.data && data.data.length > 0) {
+                        submitSaveKick(data.data[0].id);
+                    } else {
+                        submitSaveKick('');
+                    }
+                })
+                .catch(() => submitSaveKick(''));
+        } else {
+            submitSaveKick(gameId);
+        }
         return;
     }
 

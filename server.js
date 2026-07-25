@@ -1215,6 +1215,32 @@ app.get('/api/kick/channel', async (req, res) => {
     }
 });
 
+// KICK CATEGORY SEARCH ENDPOINT
+app.get('/api/kick/categories/search', async (req, res) => {
+    const query = req.query.q || req.query.query || '';
+    if (!query) return res.json({ data: [] });
+
+    try {
+        const { gotScraping } = await import('got-scraping');
+        const response = await gotScraping({
+            url: `https://kick.com/api/v1/subcategories?q=${encodeURIComponent(query)}`,
+            responseType: 'json',
+            timeout: { request: 5000 }
+        });
+
+        const items = response.body.data || response.body || [];
+        const formatted = items.map(c => ({
+            id: c.id,
+            name: c.name,
+            box_art_url: c.banner?.responsive || c.banner?.src || c.banner || 'https://kick.com/img/kick-logo.svg'
+        }));
+        res.json({ data: formatted });
+    } catch (e) {
+        console.error('[Kick Category Search Error]:', e.message);
+        res.json({ data: [] });
+    }
+});
+
 app.patch('/api/kick/channel', async (req, res) => {
     const { title, category_id } = req.body;
     if (!process.env.KICK_ACCESS_TOKEN) {
@@ -1223,8 +1249,8 @@ app.patch('/api/kick/channel', async (req, res) => {
 
     try {
         const payload = {};
-        if (title !== undefined) payload.stream_title = title;
-        if (category_id !== undefined) payload.category_id = category_id;
+        if (title !== undefined && title !== '') payload.stream_title = title;
+        if (category_id !== undefined && category_id !== '') payload.category_id = parseInt(category_id);
 
         const response = await axios.patch('https://api.kick.com/public/v1/channels', payload, {
             headers: {
