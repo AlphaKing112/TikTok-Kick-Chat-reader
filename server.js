@@ -1225,20 +1225,25 @@ app.post('/api/kick/auth/logout', (req, res) => {
 
 // KICK CHANNEL TITLE ENDPOINTS
 app.get('/api/kick/channel', async (req, res) => {
-    const channelSlug = req.query.channel || process.env.KICK_CHANNEL_NAME;
+    const channelSlug = req.query.channel || process.env.KICK_USERNAME || process.env.KICK_CHANNEL_NAME;
     if (!channelSlug) return res.status(400).json({ error: true, message: 'Channel slug required' });
 
     try {
-        const response = await axios.get(`https://kick.com/api/v1/channels/${channelSlug}`, {
-            headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
+        const { gotScraping } = await import('got-scraping');
+        const response = await gotScraping({
+            url: `https://kick.com/api/v1/channels/${encodeURIComponent(channelSlug.toLowerCase())}`,
+            responseType: 'json',
+            timeout: { request: 5000 }
         });
-        const data = response.data;
+        const data = response.body || {};
         res.json({
             title: data.livestream?.session_title || data.title || '',
-            category_name: data.livestream?.categories?.[0]?.name || data.category?.name || ''
+            category_name: data.livestream?.categories?.[0]?.name || data.category?.name || '',
+            category_id: data.livestream?.categories?.[0]?.id || data.category?.id || ''
         });
     } catch (e) {
-        res.status(500).json({ error: true, message: e.message });
+        console.error(`[Kick Channel Error] for ${channelSlug}:`, e.message);
+        res.json({ title: '', category_name: '', category_id: '' });
     }
 });
 
@@ -1256,11 +1261,25 @@ app.get('/api/kick/categories/search', async (req, res) => {
         });
 
         const items = response.body.data || response.body || [];
-        const formatted = items.map(c => ({
-            id: c.id,
-            name: c.name,
-            box_art_url: c.banner?.responsive || c.banner?.src || c.banner || 'https://kick.com/img/kick-logo.svg'
-        }));
+        const formatted = items.map(c => {
+            let imgUrl = 'https://kick.com/img/kick-logo.svg';
+            if (c.banner) {
+                if (typeof c.banner === 'string') {
+                    imgUrl = c.banner.split(' ')[0];
+                } else if (c.banner.url) {
+                    imgUrl = c.banner.url;
+                } else if (c.banner.src) {
+                    imgUrl = c.banner.src;
+                } else if (c.banner.responsive && typeof c.banner.responsive === 'string') {
+                    imgUrl = c.banner.responsive.split(' ')[0];
+                }
+            }
+            return {
+                id: c.id,
+                name: c.name,
+                box_art_url: imgUrl
+            };
+        });
         res.json({ data: formatted });
     } catch (e) {
         console.error('[Kick Category Search Error]:', e.message);
