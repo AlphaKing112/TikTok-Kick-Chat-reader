@@ -1190,11 +1190,18 @@ app.get('/api/kick/auth/status', async (req, res) => {
     }
 
     try {
+        // First try official channel endpoint
+        const chanRes = await axios.get('https://api.kick.com/public/v1/channels', {
+            headers: { 'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}`, 'Accept': 'application/json' }
+        });
+        const firstChan = chanRes.data?.data?.[0];
+        if (firstChan?.slug) {
+            process.env.KICK_USERNAME = firstChan.slug;
+            return res.json({ authorized: true, username: firstChan.slug, displayName: firstChan.slug });
+        }
+
         const response = await axios.get('https://api.kick.com/public/v1/users', {
-            headers: {
-                'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}`,
-                'Accept': 'application/json'
-            }
+            headers: { 'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}`, 'Accept': 'application/json' }
         });
         const data = response.data;
         const user = Array.isArray(data.data) ? data.data[0] : (data.data || data);
@@ -1225,7 +1232,22 @@ app.post('/api/kick/auth/logout', (req, res) => {
 
 // KICK CHANNEL TITLE ENDPOINTS
 app.get('/api/kick/channel', async (req, res) => {
-    const channelSlug = req.query.channel || process.env.KICK_USERNAME || process.env.KICK_CHANNEL_NAME;
+    let channelSlug = req.query.channel || process.env.KICK_USERNAME || process.env.KICK_CHANNEL_NAME || '';
+
+    // If channel is missing or placeholder, resolve from official token
+    if (process.env.KICK_ACCESS_TOKEN && (!channelSlug || channelSlug === 'Kick User' || channelSlug === 'Kick Streamer')) {
+        try {
+            const chanRes = await axios.get('https://api.kick.com/public/v1/channels', {
+                headers: { 'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}`, 'Accept': 'application/json' }
+            });
+            const firstChan = chanRes.data?.data?.[0];
+            if (firstChan?.slug) {
+                channelSlug = firstChan.slug;
+                process.env.KICK_USERNAME = firstChan.slug;
+            }
+        } catch (e) {}
+    }
+
     if (!channelSlug) return res.status(400).json({ error: true, message: 'Channel slug required' });
 
     try {
