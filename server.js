@@ -1236,14 +1236,24 @@ app.get('/api/kick/channel', async (req, res) => {
             timeout: { request: 5000 }
         });
         const data = response.body || {};
+        
+        const live = data.livestream;
+        const prev = (data.previous_livestreams && data.previous_livestreams.length > 0) ? data.previous_livestreams[0] : null;
+        const recentCat = (data.recent_categories && data.recent_categories.length > 0) ? data.recent_categories[0] : null;
+
+        const title = live?.session_title || prev?.session_title || data.title || '';
+        const categoryName = live?.categories?.[0]?.name || prev?.categories?.[0]?.name || recentCat?.name || data.category?.name || '';
+        const categoryId = live?.categories?.[0]?.id || prev?.categories?.[0]?.id || recentCat?.id || data.category?.id || '';
+
         res.json({
-            title: data.livestream?.session_title || data.title || '',
-            category_name: data.livestream?.categories?.[0]?.name || data.category?.name || '',
-            category_id: data.livestream?.categories?.[0]?.id || data.category?.id || ''
+            title: title,
+            category_name: categoryName,
+            category_id: categoryId,
+            is_live: !!live
         });
     } catch (e) {
         console.error(`[Kick Channel Error] for ${channelSlug}:`, e.message);
-        res.json({ title: '', category_name: '', category_id: '' });
+        res.json({ title: '', category_name: '', category_id: '', is_live: false });
     }
 });
 
