@@ -666,7 +666,9 @@ io.on('connection', (socket) => {
         });
 
         twitchChatClient.on('messagedeleted', (channel, username, deletedMessage, userstate) => {
-            socket.emit('twitchMessageDeleted', { username, messageId: userstate['target-msg-id'] });
+            const msgId = userstate['target-msg-id'];
+            socket.emit('twitchMessageDeleted', { username, messageId: msgId });
+            io.emit('twitchMessageDeleted', { username, messageId: msgId });
         });
 
         twitchChatClient.on('clearchat', (channel) => {
@@ -736,6 +738,7 @@ app.post('/api/twitch/moderate', async (req, res) => {
                     'Authorization': `Bearer ${process.env.TWITCH_ACCESS_TOKEN}`
                 }
             });
+            io.emit('twitchMessageDeleted', { username: '', messageId: messageId });
             return res.json({ success: true });
         } else if (action === 'clear') {
             await axios.delete(`https://api.twitch.tv/helix/moderation/chat?broadcaster_id=${broadcasterId}&moderator_id=${modId}`, {
@@ -1021,7 +1024,8 @@ app.get('/api/twitch/auth/status', async (req, res) => {
                 'Client-Id': process.env.TWITCH_CLIENT_ID
             }
         });
-        res.json({ authorized: true, username: response.data.data[0].login });
+        const user = response.data.data[0];
+        res.json({ authorized: true, username: user.login, displayName: user.display_name || user.login });
     } catch (e) {
         res.json({ authorized: false });
     }
@@ -1065,6 +1069,234 @@ app.post('/api/twitch/auth/logout', (req, res) => {
     global.twitchModeratorId = null;
     res.json({ success: true });
 });
+
+// === KICK OAUTH & CHANNEL ENDPOINTS ===
+const kickAuthStates = new Map();
+const crypto = require('crypto');
+
+function base64UrlEncode(str) {
+    return str.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+app.get('/api/kick/auth/url', (req, res) => {
+    const clientId = process.env.KICK_CLIENT_ID || '01KMSMY655DKGVH15FB5DB0RK7';
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers.host;
+    
+    // Redirect URI matching registered Kick app config (allows override via env)
+    const redirectUri = process.env.KICK_REDIRECT_URI || `${protocol}://${host}/api/kick-oauth/callback`;
+    const state = crypto.randomBytes(16).toString('hex');
+    
+    // PKCE parameters
+    const codeVerifier = base64UrlEncode(crypto.randomBytes(32));
+    const codeChallenge = base64UrlEncode(crypto.createHash('sha256').update(codeVerifier).digest());
+    
+    kickAuthStates.set(state, { codeVerifier, redirectUri, timestamp: Date.now() });
+
+    const scopes = 'user:read channel:read channel:write chat:write';
+    const authUrl = `https://id.kick.com/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256`;
+    
+    res.json({ url: authUrl, redirectUri });
+});
+
+app.get('/api/kick-oauth/callback', async (req, res) => {
+    const { code, state, error, error_description } = req.query;
+    if (error) {
+        return res.send(`<html><body style="background:#121212;color:white;font-family:sans-serif;padding:20px;"><h2 style="color:#ff5555">Authorization Failed</h2><p>${error_description || error}</p></body></html>`);
+    }
+    if (!code || !state) {
+        return res.status(400).send('Missing code or state');
+    }
+
+    const stateData = kickAuthStates.get(state);
+
+    const clientId = process.env.KICK_CLIENT_ID || '01KMSMY655DKGVH15FB5DB0RK7';
+    const clientSecret = process.env.KICK_CLIENT_SECRET || '';
+    const redirectUri = (stateData && stateData.redirectUri) ? stateData.redirectUri : (process.env.KICK_REDIRECT_URI || `${req.headers['x-forwarded-proto'] || req.protocol}://${req.headers.host}/api/kick-oauth/callback`);
+    const codeVerifier = stateData ? stateData.codeVerifier : '';
+
+    try {
+        const bodyParams = new URLSearchParams();
+        bodyParams.append('grant_type', 'authorization_code');
+        bodyParams.append('client_id', clientId);
+        if (clientSecret) bodyParams.append('client_secret', clientSecret);
+        bodyParams.append('code', code);
+        bodyParams.append('redirect_uri', redirectUri);
+        if (codeVerifier) bodyParams.append('code_verifier', codeVerifier);
+
+        const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+        if (clientSecret) {
+            headers['Authorization'] = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+        }
+
+        const tokenRes = await axios.post('https://id.kick.com/oauth/token', bodyParams.toString(), { headers });
+        if (stateData) kickAuthStates.delete(state);
+
+        const tokenData = tokenRes.data;
+        if (tokenData.access_token) {
+            process.env.KICK_ACCESS_TOKEN = tokenData.access_token;
+            if (tokenData.refresh_token) process.env.KICK_REFRESH_TOKEN = tokenData.refresh_token;
+
+            const envPath = path.join(__dirname, '.env');
+            if (fs.existsSync(envPath)) {
+                let envContent = fs.readFileSync(envPath, 'utf8');
+                if (envContent.includes('KICK_ACCESS_TOKEN=')) {
+                    envContent = envContent.replace(/KICK_ACCESS_TOKEN=.*/g, `KICK_ACCESS_TOKEN=${tokenData.access_token}`);
+                } else {
+                    envContent += `\nKICK_ACCESS_TOKEN=${tokenData.access_token}`;
+                }
+                fs.writeFileSync(envPath, envContent);
+            } else {
+                fs.writeFileSync(envPath, `KICK_ACCESS_TOKEN=${tokenData.access_token}`);
+            }
+
+            return res.sendFile(path.join(__dirname, 'public', 'kick-callback.html'));
+        } else {
+            throw new Error(tokenData.error || 'No access_token returned');
+        }
+    } catch (err) {
+        console.error('[Kick Auth Error Status]:', err.response?.status);
+        console.error('[Kick Auth Error Data]:', err.response?.data);
+        const errDetail = err.response?.data ? (typeof err.response.data === 'object' ? JSON.stringify(err.response.data, null, 2) : err.response.data) : err.message;
+        return res.status(500).send(`<html><body style="background:#121212;color:white;font-family:sans-serif;padding:20px;"><h2 style="color:#ff5555">Token Exchange Failed</h2><p style="color:#aaa;">Details from Kick API (Status ${err.response?.status || 500}):</p><pre style="background:#222;padding:15px;border-radius:6px;color:#ffaa00;overflow-x:auto;">${errDetail}</pre></body></html>`);
+    }
+});
+
+app.get('/api/kick/auth/status', async (req, res) => {
+    const hasToken = !!process.env.KICK_ACCESS_TOKEN;
+    if (!hasToken) return res.json({ authorized: false });
+
+    try {
+        const response = await axios.get('https://api.kick.com/public/v1/users', {
+            headers: {
+                'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}`,
+                'Accept': 'application/json'
+            }
+        });
+        const data = response.data;
+        const user = Array.isArray(data.data) ? data.data[0] : (data.data || data);
+        if (user && (user.username || user.name)) {
+            res.json({ authorized: true, username: user.username || user.name, displayName: user.name || user.username });
+        } else {
+            res.json({ authorized: true, username: 'Kick Streamer' });
+        }
+    } catch (e) {
+        res.json({ authorized: hasToken, username: process.env.KICK_CHANNEL_NAME || 'Kick Streamer' });
+    }
+});
+
+app.post('/api/kick/auth/logout', (req, res) => {
+    process.env.KICK_ACCESS_TOKEN = '';
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+        let envContent = fs.readFileSync(envPath, 'utf8');
+        envContent = envContent.replace(/KICK_ACCESS_TOKEN=.*/g, 'KICK_ACCESS_TOKEN=');
+        fs.writeFileSync(envPath, envContent);
+    }
+    res.json({ success: true });
+});
+
+// KICK CHANNEL TITLE ENDPOINTS
+app.get('/api/kick/channel', async (req, res) => {
+    const channelSlug = req.query.channel || process.env.KICK_CHANNEL_NAME;
+    if (!channelSlug) return res.status(400).json({ error: true, message: 'Channel slug required' });
+
+    try {
+        const response = await axios.get(`https://kick.com/api/v1/channels/${channelSlug}`, {
+            headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
+        });
+        const data = response.data;
+        res.json({
+            title: data.livestream?.session_title || data.title || '',
+            category_name: data.livestream?.categories?.[0]?.name || data.category?.name || ''
+        });
+    } catch (e) {
+        res.status(500).json({ error: true, message: e.message });
+    }
+});
+
+app.patch('/api/kick/channel', async (req, res) => {
+    const { title, category_id } = req.body;
+    if (!process.env.KICK_ACCESS_TOKEN) {
+        return res.status(400).json({ error: true, message: 'Kick access token missing. Please authorize Kick first!' });
+    }
+
+    try {
+        const payload = {};
+        if (title !== undefined) payload.stream_title = title;
+        if (category_id !== undefined) payload.category_id = category_id;
+
+        const response = await axios.patch('https://api.kick.com/public/v1/channels', payload, {
+            headers: {
+                'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
+        res.json({ success: true, data: response.data });
+    } catch (err) {
+        console.error('[Kick Update Channel Error]:', err.response?.data || err.message);
+        res.status(err.response?.status || 500).json({ error: true, message: err.response?.data?.message || err.message });
+    }
+});
+
+// KICK MODERATION ENDPOINT
+app.post('/api/kick/moderate', async (req, res) => {
+    const { action, targetUserId, username, messageId, duration, reason } = req.body;
+    if (!process.env.KICK_ACCESS_TOKEN) {
+        return res.status(400).json({ error: true, message: 'Kick access token missing. Please authorize Kick first!' });
+    }
+
+    try {
+        if (action === 'delete') {
+            if (messageId) {
+                try {
+                    await axios.delete(`https://api.kick.com/public/v1/chat/messages/${messageId}`, {
+                        headers: { 'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}` }
+                    });
+                } catch (e) {
+                    await axios.delete(`https://api.kick.com/public/v1/moderation/messages/${messageId}`, {
+                        headers: { 'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}` }
+                    }).catch(() => {});
+                }
+            }
+            io.emit('kickMessageDeleted', { username, messageId });
+            return res.json({ success: true });
+        } else if (action === 'timeout' || action === 'ban') {
+            const timeoutSecs = action === 'timeout' ? (duration || 600) : undefined;
+            const payload = {
+                banned_user_id: targetUserId || username,
+                reason: reason || "Moderated via CombinedChat"
+            };
+            if (timeoutSecs) payload.duration = timeoutSecs;
+
+            try {
+                await axios.post('https://api.kick.com/public/v1/moderation/bans', payload, {
+                    headers: {
+                        'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            } catch (e) {
+                await axios.post('https://api.kick.com/public/v1/channels/bans', payload, {
+                    headers: {
+                        'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                }).catch(err => {
+                    throw new Error(err.response?.data?.message || err.message);
+                });
+            }
+            io.emit(action === 'timeout' ? 'kickTimeout' : 'kickBan', { username, duration: timeoutSecs });
+            return res.json({ success: true });
+        }
+        res.status(400).json({ error: true, message: 'Invalid moderation action' });
+    } catch (err) {
+        console.error('[Kick Moderate Error]:', err.response?.data || err.message);
+        res.status(500).json({ error: true, message: err.response?.data?.message || err.message });
+    }
+});
+
 
 // TWITCH BADGES ENDPOINT
 app.get('/api/twitch/badges/:broadcasterId', async (req, res) => {

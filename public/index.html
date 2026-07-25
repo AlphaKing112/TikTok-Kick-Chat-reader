@@ -255,6 +255,9 @@
         <input type="text" id="kickLinkInput" placeholder="Kick channel name (e.g. somechannel)" autocomplete="off">
         <input type="button" id="kickConnectButton" value="connect">
         <input type="button" id="kickPlayerButton" value="Watch Stream" onclick="toggleKickPlayer()" style="display: none; margin-left: 10px; background-color: #53fc18; color: black; font-weight: bold; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+        <input type="button" id="kickAuthButton" value="Authorize Kick 🔑" onclick="authorizeKick()" style="display: none; margin-left: 10px; background-color: #53fc18; color: black; font-weight: bold; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+        <input type="button" id="kickUnauthButton" value="Logout Kick ❌" onclick="unauthorizeKick()" style="display: none; margin-left: 10px; background-color: #555; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+        <span id="kickUserInfo" style="display: none; margin-left: 10px; font-weight: bold; color: #53fc18; font-size: 14px; vertical-align: middle;">Logged in as: <span id="kickUsername"></span></span>
         <br>
         <p>Enter the <b>Twitch channel name</b>:</p>
         <input type="text" id="twitchInput" placeholder="Twitch channel name" autocomplete="off">
@@ -263,10 +266,38 @@
         <input type="button" id="twitchClipButton" value="Clip Stream 🎬" onclick="createTwitchClip()" style="display: none; margin-left: 10px; background-color: #ffaa00; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
         <input type="button" id="twitchAuthButton" value="Authorize Twitch 🔑" onclick="authorizeTwitch()" style="display: none; margin-left: 10px; background-color: #6441a5; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
         <input type="button" id="twitchUnauthButton" value="Logout Twitch ❌" onclick="unauthorizeTwitch()" style="display: none; margin-left: 10px; background-color: #555; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+        <span id="twitchUserInfo" style="display: none; margin-left: 10px; font-weight: bold; color: #a970ff; font-size: 14px; vertical-align: middle;">Logged in as: <span id="twitchUsername"></span></span>
         <br>
     </div>
 
     <script>
+        function unauthorizeKick() {
+            if (confirm("Are you sure you want to log out of Kick? You will lose channel management capabilities until you re-authorize.")) {
+                fetch('/api/kick/auth/logout', { method: 'POST' })
+                    .then(() => window.location.reload());
+            }
+        }
+
+        function authorizeKick() {
+            fetch('/api/kick/auth/url')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.url) {
+                        const width = 500;
+                        const height = 700;
+                        const left = (screen.width - width) / 2;
+                        const top = (screen.height - height) / 2;
+                        window.open(data.url, 'Kick Auth', `width=${width},height=${height},top=${top},left=${left}`);
+                    } else {
+                        alert('Error getting Kick authorization URL: ' + data.error);
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to start Kick auth', err);
+                    alert('Network error connecting to backend.');
+                });
+        }
+
         function unauthorizeTwitch() {
             if (confirm("Are you sure you want to log out of Twitch? You will lose moderation and follow capabilities until you re-authorize.")) {
                 fetch('/api/twitch/auth/logout', { method: 'POST' })
@@ -551,14 +582,21 @@ function copyOverlayUrl() {
         </div>
 
         <div id="sectionStreamInfo">
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <button id="streamPlatformTwitchBtn" onclick="selectStreamPlatform('twitch')" style="flex: 1; background: #9146FF; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: bold;">Twitch</button>
+                <button id="streamPlatformKickBtn" onclick="selectStreamPlatform('kick')" style="flex: 1; background: #1c1e29; color: #53fc18; border: 1px solid #53fc18; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: bold;">Kick</button>
+            </div>
+
             <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px;">STREAM TITLE</label>
             <textarea id="streamTitleInput" disabled style="width: 100%; box-sizing: border-box; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; margin-bottom: 15px; resize: vertical; min-height: 60px; opacity: 0.5;" placeholder="Loading stream info..."></textarea>
             
-            <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px;">CATEGORY / GAME</label>
-            <div style="position: relative; margin-bottom: 15px;">
-                <input type="text" id="streamGameInput" disabled style="width: 100%; box-sizing: border-box; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; opacity: 0.5;" placeholder="Loading stream info..." autocomplete="off">
-                <input type="hidden" id="streamGameIdInput">
-                <div id="gameSearchResults" class="custom-scrollbar" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; max-height: 200px; overflow-y: auto; background: #1f1f23; border: 1px solid #444; border-top: none; z-index: 10000;"></div>
+            <div id="categoryContainer">
+                <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px;">CATEGORY / GAME</label>
+                <div style="position: relative; margin-bottom: 15px;">
+                    <input type="text" id="streamGameInput" disabled style="width: 100%; box-sizing: border-box; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; opacity: 0.5;" placeholder="Loading stream info..." autocomplete="off">
+                    <input type="hidden" id="streamGameIdInput">
+                    <div id="gameSearchResults" class="custom-scrollbar" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; max-height: 200px; overflow-y: auto; background: #1f1f23; border: 1px solid #444; border-top: none; z-index: 10000;"></div>
+                </div>
             </div>
 
             <button id="saveStreamInfoBtn" onclick="saveStreamInfo()" disabled style="width: 100%; background: #9146FF; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; opacity: 0.5;">Save Changes</button>

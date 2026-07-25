@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kick Authorization</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .container {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        h2 {
+            margin-top: 0;
+            color: #53fc18;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 id="status">Success!</h2>
+        <p id="details">Connected to Kick! You can safely close this window.</p>
+    </div>
+
+    <script>
+        // Update parent window if opened via popup
+        if (window.opener && window.opener.checkKickAuthStatus) {
+            window.opener.checkKickAuthStatus();
+        }
+        // Close popup after 1.5s
+        setTimeout(() => {
+            try { window.close(); } catch(e) {}
+        }, 1500);
+    </script>
+</body>
+</html>

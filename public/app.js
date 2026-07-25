@@ -727,6 +727,9 @@ $(document).ready(() => {
                 .then(data => {
                     if (data.authorized) {
                         window.authorizedTwitchUser = data.username;
+                        const displayUser = data.displayName || data.username;
+                        $('#twitchUsername').text(displayUser);
+                        $('#twitchUserInfo').show();
                         $('#twitchAuthButton').hide();
                         $('#twitchUnauthButton').show();
                         // If we connected before auth, our roomId is null. Reconnect to fetch it properly!
@@ -734,12 +737,41 @@ $(document).ready(() => {
                             window.connection.socket.emit('setTwitchChannel', currentTwitchChannelName);
                         }
                     } else {
+                        window.authorizedTwitchUser = null;
+                        $('#twitchUsername').text('');
+                        $('#twitchUserInfo').hide();
                         $('#twitchAuthButton').show();
                         $('#twitchUnauthButton').hide();
                     }
                 })
                 .catch(err => console.error('Failed to check auth status', err));
         };
+        // Check auth status immediately on script initialization
+        window.checkTwitchAuthStatus();
+
+        window.checkKickAuthStatus = function() {
+            fetch('/api/kick/auth/status')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.authorized) {
+                        window.authorizedKickUser = data.username;
+                        const displayUser = data.displayName || data.username;
+                        $('#kickUsername').text(displayUser);
+                        $('#kickUserInfo').show();
+                        $('#kickAuthButton').hide();
+                        $('#kickUnauthButton').show();
+                    } else {
+                        window.authorizedKickUser = null;
+                        $('#kickUsername').text('');
+                        $('#kickUserInfo').hide();
+                        $('#kickAuthButton').show();
+                        $('#kickUnauthButton').hide();
+                    }
+                })
+                .catch(err => console.error('Failed to check Kick auth status', err));
+        };
+        // Check Kick auth status immediately on script initialization
+        window.checkKickAuthStatus();
 
         window.connection.socket.on('twitchConnected', function(data) {
             console.log('[Twitch] Connected to', data.channelName);
@@ -829,20 +861,62 @@ $(document).ready(() => {
 
         window.connection.socket.on('twitchMessageDeleted', function(data) {
             console.log('[Twitch] Message Deleted:', data);
-            $(`#twitch-msg-${data.messageId} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
-            if (typeof showNotification === 'function') showNotification(`Message deleted from ${data.username}`, 'info');
+            const isMainChat = $('.chatcontainer').length > 0;
+            if (data.messageId) {
+                if (isMainChat) {
+                    $(`#twitch-msg-${data.messageId} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
+                } else {
+                    $(`#twitch-msg-${data.messageId}`).remove();
+                }
+                $('.eventcontainer').find(`#twitch-msg-${data.messageId}`).remove();
+            }
+            if (typeof showNotification === 'function' && isMainChat && data.username) {
+                showNotification(`Message deleted from ${data.username}`, 'info');
+            }
         });
 
         window.connection.socket.on('twitchTimeout', function(data) {
             console.log('[Twitch] User Timeout:', data);
             $(`.twitch-username-${data.username.toLowerCase()} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
-            if (typeof showNotification === 'function') showNotification(`${data.username} timed out for ${data.duration}s`, 'warning');
+            $('.eventcontainer').find(`.twitch-username-${data.username.toLowerCase()}`).remove();
+            if (typeof showNotification === 'function' && $('.chatcontainer').length > 0) showNotification(`${data.username} timed out for ${data.duration}s`, 'warning');
         });
 
         window.connection.socket.on('twitchBan', function(data) {
             console.log('[Twitch] User Banned:', data);
             $(`.twitch-username-${data.username.toLowerCase()} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
-            if (typeof showNotification === 'function') showNotification(`${data.username} was banned`, 'error');
+            $('.eventcontainer').find(`.twitch-username-${data.username.toLowerCase()}`).remove();
+            if (typeof showNotification === 'function' && $('.chatcontainer').length > 0) showNotification(`${data.username} was banned`, 'error');
+        });
+
+        window.connection.socket.on('kickMessageDeleted', function(data) {
+            console.log('[Kick] Message Deleted:', data);
+            const isMainChat = $('.chatcontainer').length > 0;
+            if (data.messageId) {
+                if (isMainChat) {
+                    $(`#kick-msg-${data.messageId} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
+                } else {
+                    $(`#kick-msg-${data.messageId}`).remove();
+                }
+                $('.eventcontainer').find(`#kick-msg-${data.messageId}`).remove();
+            }
+            if (typeof showNotification === 'function' && isMainChat && data.username) {
+                showNotification(`Kick message deleted from ${data.username}`, 'info');
+            }
+        });
+
+        window.connection.socket.on('kickTimeout', function(data) {
+            console.log('[Kick] User Timeout:', data);
+            $(`.kick-user-${(data.username || '').toLowerCase()} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
+            $('.eventcontainer').find(`.kick-user-${(data.username || '').toLowerCase()}`).remove();
+            if (typeof showNotification === 'function' && $('.chatcontainer').length > 0) showNotification(`${data.username} timed out on Kick for ${data.duration}s`, 'warning');
+        });
+
+        window.connection.socket.on('kickBan', function(data) {
+            console.log('[Kick] User Banned:', data);
+            $(`.kick-user-${(data.username || '').toLowerCase()} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
+            $('.eventcontainer').find(`.kick-user-${(data.username || '').toLowerCase()}`).remove();
+            if (typeof showNotification === 'function' && $('.chatcontainer').length > 0) showNotification(`${data.username} was banned on Kick`, 'error');
         });
 
         window.connection.socket.on('twitchClearChat', function() {
@@ -1754,11 +1828,11 @@ $(document).ready(function() {
         
         const msgId = msg.id || Date.now();
         const avatarId = `kick-avatar-chat-${msg.sender?.username}-${msgId}`;
-        const kickMessage = `<div class="kick-message">
+        const kickMessage = `<div class="kick-message kick-user-${(msg.sender?.username || '').toLowerCase()}" id="kick-msg-${msgId}">
             <svg class="platform-icon" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.8));" viewBox="0 0 256 256"><path fill="#53fc18" d="M56 32h48v56h48V32h48v56h-48v56h48v80h-48v-56h-48v56H56V32z"/></svg>
             <img id="${avatarId}" class="miniprofilepicture kick-avatar-img" src="${profilePic}" onerror="this.onerror=null;this.src='kick-logo.png';" data-username="${msg.sender?.username}">
             ${badgeHtml}
-            <b style="color:${msg.sender?.color || getRandomColor(msg.sender?.username || '')} !important">${sanitize(msg.sender?.username || '')}:</b>
+            <b style="color:${msg.sender?.color || getRandomColor(msg.sender?.username || '')} !important; cursor: pointer;" onclick="showKickContextMenu(event, '${msg.sender?.id || ''}', '${msgId}', '${sanitize(msg.sender?.username || '')}', '${profilePic}')">${sanitize(msg.sender?.username || '')}:</b>
             <span>${messageHtml}</span>
         </div>`;
         
@@ -2256,8 +2330,10 @@ function moderateTwitch(action, duration = null) {
               showNotification('Moderation action successful: ' + action, 'success');
               if (action === 'delete' && messageId) {
                   $(`#twitch-msg-${messageId} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
+                  $('.eventcontainer').find(`#twitch-msg-${messageId}`).remove();
               } else if (action === 'timeout' || action === 'ban') {
                   $(`.twitch-user-${userId} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
+                  $('.eventcontainer').find(`.twitch-user-${userId}`).remove();
               }
           }
       })
@@ -2815,17 +2891,51 @@ function switchChannelActionTab(tab) {
     }
 }
 
-function fetchCurrentStreamInfo() {
-    if (!window.currentTwitchRoomId) {
-        showNotification('Not connected to Twitch!', 'error');
-        return;
-    }
+let currentStreamPlatform = 'twitch';
 
+function selectStreamPlatform(platform) {
+    currentStreamPlatform = platform;
+    if (platform === 'twitch') {
+        $('#streamPlatformTwitchBtn').css({ background: '#9146FF', color: 'white', border: 'none' });
+        $('#streamPlatformKickBtn').css({ background: '#1c1e29', color: '#53fc18', border: '1px solid #53fc18' });
+        $('#categoryContainer').show();
+    } else {
+        $('#streamPlatformKickBtn').css({ background: '#53fc18', color: 'black', border: 'none' });
+        $('#streamPlatformTwitchBtn').css({ background: '#1c1e29', color: '#9146FF', border: '1px solid #9146FF' });
+        $('#categoryContainer').hide();
+    }
+    fetchCurrentStreamInfo();
+}
+
+function fetchCurrentStreamInfo() {
     const enableInputs = () => {
         $('#streamTitleInput').prop('disabled', false).css('opacity', '1');
         $('#streamGameInput').prop('disabled', false).css('opacity', '1');
         $('#saveStreamInfoBtn').prop('disabled', false).css('opacity', '1');
     };
+
+    if (currentStreamPlatform === 'kick') {
+        const kickChannel = $('#kickLinkInput').val() || window.authorizedKickUser || '';
+        fetch('/api/kick/channel?channel=' + encodeURIComponent(kickChannel))
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) throw new Error(data.message);
+                $('#streamTitleInput').val(data.title || '');
+                enableInputs();
+            })
+            .catch(err => {
+                console.error('Failed to load Kick stream info:', err);
+                $('#streamTitleInput').attr('placeholder', 'Enter Kick Stream Title...');
+                enableInputs();
+            });
+        return;
+    }
+
+    if (!window.currentTwitchRoomId) {
+        $('#streamTitleInput').attr('placeholder', 'Not connected to Twitch');
+        enableInputs();
+        return;
+    }
 
     fetch('/api/twitch/channel?broadcasterId=' + window.currentTwitchRoomId)
         .then(res => res.json())
@@ -2952,7 +3062,6 @@ $(document).click(function(e) {
 });
 
 function saveStreamInfo() {
-    if (!window.currentTwitchRoomId) return;
     const title = $('#streamTitleInput').val().trim();
     const gameNameInput = $('#streamGameInput').val().trim();
     let gameId = $('#streamGameIdInput').val();
@@ -2960,6 +3069,30 @@ function saveStreamInfo() {
     const saveBtn = $('#channelActionsModal button:contains("Save Changes")');
     const oldBtnText = saveBtn.text();
     saveBtn.text('Saving...').prop('disabled', true);
+
+    if (currentStreamPlatform === 'kick') {
+        fetch('/api/kick/channel', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: title })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) throw new Error(data.message);
+            showNotification('Kick Stream Title updated successfully!', 'success');
+            $('#channelActionsModal').hide();
+            $('#channelActionsBackdrop').hide();
+        })
+        .catch(err => showNotification('Failed to update Kick title: ' + err.message, 'error'))
+        .finally(() => saveBtn.text(oldBtnText).prop('disabled', false));
+        return;
+    }
+
+    if (!window.currentTwitchRoomId) {
+        showNotification('Not connected to Twitch!', 'error');
+        saveBtn.text(oldBtnText).prop('disabled', false);
+        return;
+    }
 
     const submitSave = (finalGameId) => {
         fetch('/api/twitch/channel', {
