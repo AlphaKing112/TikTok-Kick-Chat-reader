@@ -2795,6 +2795,8 @@ window.showKickContextMenu = function(event, userId, messageId, username, profil
                     <img id="kickContextMenuAvatar" src="" style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #53fc18; object-fit: cover;">
                     <div style="display: flex; flex-direction: column;">
                         <span id="kickContextMenuUsername" style="font-weight: bold; font-size: 1.1em; color: #53fc18;">Username</span>
+                        <span id="kickContextMenuFollowDate" style="font-size: 0.85em; color: #ccc;">🤍 Loading...</span>
+                        <span id="kickContextMenuSubStatus" style="font-size: 0.85em; color: #ccc; display: none;">⭐ Loading...</span>
                     </div>
                 </div>
                 <div class="context-menu-item mod-only-kick" onclick="moderateKick('timeout', 60)" style="color: #ffaa00;">Timeout (1m)</div>
@@ -2808,6 +2810,8 @@ window.showKickContextMenu = function(event, userId, messageId, username, profil
     
     $('#kickContextMenuAvatar').attr('src', profilePic || 'https://kick.com/img/kick-logo.svg');
     $('#kickContextMenuUsername').text(username);
+    $('#kickContextMenuFollowDate').text('🤍 Loading...');
+    $('#kickContextMenuSubStatus').hide();
     
     const posX = event ? event.pageX : 100;
     const posY = event ? event.pageY : 100;
@@ -2817,6 +2821,44 @@ window.showKickContextMenu = function(event, userId, messageId, username, profil
         left: posX + 'px',
         display: 'block'
     });
+
+    // Fetch follow date and profile info from backend endpoint
+    window.kickUserInfoCache = window.kickUserInfoCache || {};
+    const cacheKey = `${currentKickChannel}_${username}`;
+
+    function applyKickUserInfo(data) {
+        if (data.profilePic && !profilePic) {
+            $('#kickContextMenuAvatar').attr('src', data.profilePic);
+        }
+        if (data.followingSince) {
+            const date = new Date(data.followingSince).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+            $('#kickContextMenuFollowDate').text(`🤍 Following Since ${date}`);
+        } else {
+            $('#kickContextMenuFollowDate').text('🤍 Not Following');
+        }
+
+        if (data.subscribedFor > 0) {
+            $('#kickContextMenuSubStatus').text(`⭐ Subbed for ${data.subscribedFor} Months`).show();
+        } else {
+            $('#kickContextMenuSubStatus').hide();
+        }
+    }
+
+    if (window.kickUserInfoCache[cacheKey]) {
+        applyKickUserInfo(window.kickUserInfoCache[cacheKey]);
+    } else {
+        fetch(`/api/kick/userinfo?channel=${encodeURIComponent(currentKickChannel)}&username=${encodeURIComponent(username)}`)
+            .then(res => res.json())
+            .then(data => {
+                window.kickUserInfoCache[cacheKey] = data;
+                if (currentKickContextMenuData && currentKickContextMenuData.username === username) {
+                    applyKickUserInfo(data);
+                }
+            })
+            .catch(() => {
+                $('#kickContextMenuFollowDate').text('🤍 Not Following');
+            });
+    }
 };
 function showKickContextMenu(event, userId, messageId, username, profilePic) {
     return window.showKickContextMenu(event, userId, messageId, username, profilePic);

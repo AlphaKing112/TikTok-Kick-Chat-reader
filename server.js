@@ -1297,6 +1297,36 @@ app.post('/api/kick/moderate', async (req, res) => {
     }
 });
 
+// KICK USER INFO & FOLLOW DATE ENDPOINT
+app.get('/api/kick/userinfo', async (req, res) => {
+    const { channel, username } = req.query;
+    if (!channel || !username) {
+        return res.status(400).json({ error: true, message: 'Missing channel or username' });
+    }
+
+    try {
+        const { gotScraping } = await import('got-scraping');
+        const response = await gotScraping({
+            url: `https://kick.com/api/v2/channels/${encodeURIComponent(channel)}/users/${encodeURIComponent(username)}`,
+            responseType: 'json',
+            timeout: { request: 5000 }
+        });
+
+        const data = response.body || {};
+        res.json({
+            profilePic: data.profile_pic || null,
+            followingSince: data.following_since || null,
+            subscribedFor: data.subscribed_for || 0,
+            createdAt: data.created_at || null,
+            isModerator: data.is_moderator || false,
+            isBanned: !!data.banned
+        });
+    } catch (e) {
+        console.error(`[Kick UserInfo Error] for ${username} in ${channel}:`, e.message);
+        res.json({ profilePic: null, followingSince: null, subscribedFor: 0, createdAt: null });
+    }
+});
+
 
 // TWITCH BADGES ENDPOINT
 app.get('/api/twitch/badges/:broadcasterId', async (req, res) => {
