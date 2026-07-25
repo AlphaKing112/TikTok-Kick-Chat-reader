@@ -3383,9 +3383,10 @@ window.startPollSubmit = function() {
     }
 
     const duration = $('#pollDurationSelect').val();
+    const targetPlatform = $('#pollPlatformSelect').val() || 'all';
 
     if (window.connection && window.connection.socket) {
-        window.connection.socket.emit('createPoll', { title, options, duration });
+        window.connection.socket.emit('createPoll', { title, options, duration, targetPlatform });
         showNotification('🚀 Poll started successfully!', 'success');
         $('#pollModal').hide();
         $('#pollModalBackdrop').hide();
@@ -3415,6 +3416,7 @@ window.resetPollFields = function() {
             <input type="text" class="poll-option-kw" value="2" placeholder="Keyword (e.g. 2)" style="flex: 1; background: #0e0e14; border: 1px solid #444; color: #53fc18; font-weight: bold; padding: 8px; border-radius: 6px;">
         </div>
     `);
+    $('#pollPlatformSelect').val('all');
     $('#pollDurationSelect').val('60');
     showNotification('🧹 Poll inputs reset!', 'info');
 };

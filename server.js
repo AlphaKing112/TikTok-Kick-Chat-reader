@@ -151,6 +151,11 @@ function processPollVote(platform, username, text) {
     if (!activePoll || !activePoll.active || activePoll.ended) return;
     if (!text || !username) return;
 
+    // Check platform filter if specified
+    if (activePoll.targetPlatform && activePoll.targetPlatform !== 'all') {
+        if (platform.toLowerCase() !== activePoll.targetPlatform.toLowerCase()) return;
+    }
+
     const trimmedText = text.trim().toLowerCase();
     const userKey = `${platform.toLowerCase()}:${username.toLowerCase()}`;
 
@@ -214,7 +219,8 @@ function getPollPayload() {
         options: activePoll.options ? activePoll.options.map(o => ({ id: o.id, label: o.label, keyword: o.keyword, votes: o.votes })) : [],
         totalVotes: activePoll.totalVotes || 0,
         duration: activePoll.duration,
-        endTime: activePoll.endTime
+        endTime: activePoll.endTime,
+        targetPlatform: activePoll.targetPlatform || 'all'
     };
 }
 
@@ -233,7 +239,7 @@ io.on('connection', (socket) => {
         socket.emit('pollState', getPollPayload());
     });
 
-    socket.on('createPoll', ({ title, options, duration }) => {
+    socket.on('createPoll', ({ title, options, duration, targetPlatform }) => {
         if (pollTimerTimeout) clearTimeout(pollTimerTimeout);
         if (pollHideTimeout) clearTimeout(pollHideTimeout);
 
@@ -255,7 +261,8 @@ io.on('connection', (socket) => {
             totalVotes: 0,
             voterMap: new Map(),
             duration: durationSec,
-            endTime: endTime
+            endTime: endTime,
+            targetPlatform: targetPlatform || 'all'
         };
 
         if (endTime) {

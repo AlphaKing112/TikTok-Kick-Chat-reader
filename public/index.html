@@ -638,13 +638,26 @@ function copyOverlayUrl() {
         </div>
         <button onclick="addPollOptionRow()" style="background: transparent; color: #58a6ff; border: 1px dashed #58a6ff; width: 100%; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.85em; margin-bottom: 15px;">+ Add Option</button>
 
-        <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px; font-weight: bold;">DURATION</label>
-        <select id="pollDurationSelect" style="width: 100%; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px; margin-bottom: 20px;">
-            <option value="60">1 Minute (60s)</option>
-            <option value="120">2 Minutes (120s)</option>
-            <option value="300">5 Minutes (300s)</option>
-            <option value="0">No Limit (Manual End)</option>
-        </select>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <div style="flex: 1;">
+                <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px; font-weight: bold;">ALLOW VOTES FROM</label>
+                <select id="pollPlatformSelect" style="width: 100%; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px;">
+                    <option value="all">🌐 All Platforms</option>
+                    <option value="twitch">🟣 Twitch Only</option>
+                    <option value="kick">🟢 Kick Only</option>
+                    <option value="tiktok">🎵 TikTok Only</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px; font-weight: bold;">DURATION</label>
+                <select id="pollDurationSelect" style="width: 100%; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px;">
+                    <option value="60">1 Minute (60s)</option>
+                    <option value="120">2 Minutes (120s)</option>
+                    <option value="300">5 Minutes (300s)</option>
+                    <option value="0">No Limit (Manual)</option>
+                </select>
+            </div>
+        </div>
 
         <div style="display: flex; gap: 8px; margin-bottom: 10px;">
             <button onclick="startPollSubmit()" style="flex: 2; background: linear-gradient(90deg, #ffaa00, #ff5555); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">🚀 Start Poll</button>
