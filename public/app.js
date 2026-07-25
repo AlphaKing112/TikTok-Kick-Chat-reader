@@ -3403,6 +3403,22 @@ window.endPollSubmit = function() {
     }
 };
 
+window.resetPollFields = function() {
+    $('#pollTitleInput').val('');
+    $('#pollOptionsContainer').html(`
+        <div class="poll-option-row" style="display: flex; gap: 8px;">
+            <input type="text" class="poll-option-label" placeholder="Option 1 (e.g. GTA V)" style="flex: 2; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px;">
+            <input type="text" class="poll-option-kw" value="1" placeholder="Keyword (e.g. 1)" style="flex: 1; background: #0e0e14; border: 1px solid #444; color: #53fc18; font-weight: bold; padding: 8px; border-radius: 6px;">
+        </div>
+        <div class="poll-option-row" style="display: flex; gap: 8px;">
+            <input type="text" class="poll-option-label" placeholder="Option 2 (e.g. Fortnite)" style="flex: 2; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px;">
+            <input type="text" class="poll-option-kw" value="2" placeholder="Keyword (e.g. 2)" style="flex: 1; background: #0e0e14; border: 1px solid #444; color: #53fc18; font-weight: bold; padding: 8px; border-radius: 6px;">
+        </div>
+    `);
+    $('#pollDurationSelect').val('60');
+    showNotification('🧹 Poll inputs reset!', 'info');
+};
+
 window.copyPollOverlayUrl = function() {
     const origin = window.location.origin;
     const pollUrl = `${origin}/poll.html`;

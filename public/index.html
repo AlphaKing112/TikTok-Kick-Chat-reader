@@ -646,9 +646,10 @@ function copyOverlayUrl() {
             <option value="0">No Limit (Manual End)</option>
         </select>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
             <button onclick="startPollSubmit()" style="flex: 2; background: linear-gradient(90deg, #ffaa00, #ff5555); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">🚀 Start Poll</button>
-            <button onclick="endPollSubmit()" style="flex: 1; background: #d92d2d; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">🛑 End Poll</button>
+            <button onclick="endPollSubmit()" style="flex: 1; background: #d92d2d; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">🛑 End</button>
+            <button onclick="resetPollFields()" style="flex: 1; background: #33364d; color: #e3e5eb; border: 1px solid #555; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;" title="Clear title and reset option inputs">🔄 Reset</button>
         </div>
 
         <!-- Live Results Box inside Poll Modal -->
