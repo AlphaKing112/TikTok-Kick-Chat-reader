@@ -3068,43 +3068,58 @@ function fetchCurrentStreamInfo() {
         $('#saveStreamInfoBtn').prop('disabled', false).css('opacity', '1');
     };
 
+    $('#streamTitleInput').val('').attr('placeholder', 'Loading stream info...');
+    $('#streamGameInput').val('').attr('placeholder', 'Loading stream info...');
+
     if (currentStreamPlatform === 'kick') {
-        const kickChannel = $('#kickLinkInput').val() || window.authorizedKickUser || '';
+        let kickChannel = (typeof currentKickChannel !== 'undefined' && currentKickChannel) ? currentKickChannel : '';
+        if (!kickChannel && window.authorizedKickUser) kickChannel = window.authorizedKickUser;
+        if (!kickChannel && $('#kickLinkInput').length > 0) kickChannel = $('#kickLinkInput').val().trim();
+
+        if (!kickChannel) {
+            $('#streamTitleInput').attr('placeholder', 'Enter Kick Stream Title...');
+            $('#streamGameInput').attr('placeholder', 'Search Kick Category (e.g. Just Chatting)...');
+            enableInputs();
+            return;
+        }
+
         fetch('/api/kick/channel?channel=' + encodeURIComponent(kickChannel))
             .then(res => res.json())
             .then(data => {
-                if (data.error) throw new Error(data.message);
-                $('#streamTitleInput').val(data.title || '');
-                $('#streamGameInput').val(data.category_name || '');
+                $('#streamTitleInput').val(data.title || '').attr('placeholder', 'Enter Kick Stream Title...');
+                $('#streamGameInput').val(data.category_name || '').attr('placeholder', 'Search Kick Category (e.g. Just Chatting)...');
                 $('#streamGameIdInput').val(data.category_id || '');
                 enableInputs();
             })
             .catch(err => {
                 console.error('Failed to load Kick stream info:', err);
                 $('#streamTitleInput').attr('placeholder', 'Enter Kick Stream Title...');
+                $('#streamGameInput').attr('placeholder', 'Search Kick Category (e.g. Just Chatting)...');
                 enableInputs();
             });
         return;
     }
 
-    if (!window.currentTwitchRoomId) {
-        $('#streamTitleInput').attr('placeholder', 'Not connected to Twitch');
+    if (!window.currentTwitchRoomId && typeof currentTwitchChannelName === 'undefined') {
+        $('#streamTitleInput').attr('placeholder', 'Enter Twitch Stream Title...');
+        $('#streamGameInput').attr('placeholder', 'Search Twitch Category...');
         enableInputs();
         return;
     }
 
-    fetch('/api/twitch/channel?broadcasterId=' + window.currentTwitchRoomId)
+    const twitchBroadcaster = window.currentTwitchRoomId || currentTwitchChannelName || '';
+    fetch('/api/twitch/channel?broadcasterId=' + encodeURIComponent(twitchBroadcaster))
         .then(res => res.json())
         .then(data => {
-            if (data.error) throw new Error(data.message);
-            $('#streamTitleInput').val(data.title || '');
-            $('#streamGameInput').val(data.game_name || '');
+            $('#streamTitleInput').val(data.title || '').attr('placeholder', 'Enter Twitch Stream Title...');
+            $('#streamGameInput').val(data.game_name || '').attr('placeholder', 'Search Twitch Category...');
             $('#streamGameIdInput').val(data.game_id || '');
             enableInputs();
         })
         .catch(err => {
             console.error('Failed to load stream info:', err);
-            $('#streamTitleInput').attr('placeholder', 'Failed to load title');
+            $('#streamTitleInput').attr('placeholder', 'Enter Twitch Stream Title...');
+            $('#streamGameInput').attr('placeholder', 'Search Twitch Category...');
             enableInputs();
         });
 }
