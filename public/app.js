@@ -3245,7 +3245,7 @@ function saveStreamInfo() {
             fetch('/api/kick/channel', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: title, category_id: finalCategoryId })
+                body: JSON.stringify({ title: title, category_id: finalCategoryId, category_name: gameNameInput })
             })
             .then(res => res.json())
             .then(data => {

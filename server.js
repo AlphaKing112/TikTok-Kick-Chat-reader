@@ -1231,6 +1231,8 @@ app.post('/api/kick/auth/logout', (req, res) => {
 });
 
 // KICK CHANNEL TITLE ENDPOINTS
+const kickChannelCache = new Map();
+
 app.get('/api/kick/channel', async (req, res) => {
     let channelSlug = req.query.channel || process.env.KICK_USERNAME || process.env.KICK_CHANNEL_NAME || '';
 
@@ -1250,6 +1252,8 @@ app.get('/api/kick/channel', async (req, res) => {
 
     if (!channelSlug) return res.status(400).json({ error: true, message: 'Channel slug required' });
 
+    const cached = kickChannelCache.get(channelSlug.toLowerCase());
+
     try {
         const { gotScraping } = await import('got-scraping');
         const response = await gotScraping({
@@ -1263,9 +1267,9 @@ app.get('/api/kick/channel', async (req, res) => {
         const prev = (data.previous_livestreams && data.previous_livestreams.length > 0) ? data.previous_livestreams[0] : null;
         const recentCat = (data.recent_categories && data.recent_categories.length > 0) ? data.recent_categories[0] : null;
 
-        const title = live?.session_title || prev?.session_title || data.title || '';
-        const categoryName = live?.categories?.[0]?.name || prev?.categories?.[0]?.name || recentCat?.name || data.category?.name || '';
-        const categoryId = live?.categories?.[0]?.id || prev?.categories?.[0]?.id || recentCat?.id || data.category?.id || '';
+        const title = live?.session_title || cached?.title || prev?.session_title || data.title || '';
+        const categoryName = live?.categories?.[0]?.name || cached?.category_name || prev?.categories?.[0]?.name || recentCat?.name || data.category?.name || '';
+        const categoryId = live?.categories?.[0]?.id || cached?.category_id || prev?.categories?.[0]?.id || recentCat?.id || data.category?.id || '';
 
         res.json({
             title: title,
@@ -1275,7 +1279,12 @@ app.get('/api/kick/channel', async (req, res) => {
         });
     } catch (e) {
         console.error(`[Kick Channel Error] for ${channelSlug}:`, e.message);
-        res.json({ title: '', category_name: '', category_id: '', is_live: false });
+        res.json({
+            title: cached?.title || '',
+            category_name: cached?.category_name || '',
+            category_id: cached?.category_id || '',
+            is_live: false
+        });
     }
 });
 
@@ -1320,7 +1329,7 @@ app.get('/api/kick/categories/search', async (req, res) => {
 });
 
 app.patch('/api/kick/channel', async (req, res) => {
-    const { title, category_id } = req.body;
+    const { title, category_id, category_name } = req.body;
     if (!process.env.KICK_ACCESS_TOKEN) {
         return res.status(400).json({ error: true, message: 'Kick access token missing. Please authorize Kick first!' });
     }
@@ -1337,6 +1346,15 @@ app.patch('/api/kick/channel', async (req, res) => {
                 'Accept': 'application/json'
             }
         });
+
+        const channelSlug = process.env.KICK_USERNAME || process.env.KICK_CHANNEL_NAME || 'mychannel';
+        const currentCache = kickChannelCache.get(channelSlug.toLowerCase()) || {};
+        kickChannelCache.set(channelSlug.toLowerCase(), {
+            title: title !== undefined ? title : currentCache.title,
+            category_name: category_name !== undefined ? category_name : currentCache.category_name,
+            category_id: category_id !== undefined ? category_id : currentCache.category_id
+        });
+
         res.json({ success: true, data: response.data });
     } catch (err) {
         console.error('[Kick Update Channel Error]:', err.response?.data || err.message);
