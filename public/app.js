@@ -2775,6 +2775,105 @@ function moderateTwitchInline(userId, messageId, action, username) {
       .catch(err => showNotification(`Failed: ${err.message}`, 'error'));
 }
 
+let currentKickContextMenuData = null;
+
+window.showKickContextMenu = function(event, userId, messageId, username, profilePic) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    currentKickContextMenuData = { userId, messageId, username };
+    
+    $('#twitchContextMenu').hide();
+    
+    let menu = $('#kickContextMenu');
+    if (menu.length === 0) {
+        menu = $(`
+            <div id="kickContextMenu" class="context-menu" style="display: none;">
+                <div class="context-menu-header" style="display: flex; align-items: center; gap: 10px; text-align: left; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 5px;">
+                    <img id="kickContextMenuAvatar" src="" style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #53fc18; object-fit: cover;">
+                    <div style="display: flex; flex-direction: column;">
+                        <span id="kickContextMenuUsername" style="font-weight: bold; font-size: 1.1em; color: #53fc18;">Username</span>
+                    </div>
+                </div>
+                <div class="context-menu-item mod-only-kick" onclick="moderateKick('timeout', 60)" style="color: #ffaa00;">Timeout (1m)</div>
+                <div class="context-menu-item mod-only-kick" onclick="moderateKick('timeout', 600)" style="color: #ffaa00;">Timeout (10m)</div>
+                <div class="context-menu-item mod-only-kick" onclick="moderateKick('timeout', 3600)" style="color: #ffaa00;">Timeout (1h)</div>
+                <div class="context-menu-item mod-only-kick" onclick="moderateKick('delete')" style="color: #ffaa00;">Delete Message</div>
+                <div class="context-menu-item mod-only-kick" onclick="moderateKick('ban')" style="color: #ff5555; border-top: 1px solid #444; margin-top: 5px; padding-top: 5px;">Ban User</div>
+            </div>
+        `).appendTo('body');
+    }
+    
+    $('#kickContextMenuAvatar').attr('src', profilePic || 'https://kick.com/img/kick-logo.svg');
+    $('#kickContextMenuUsername').text(username);
+    
+    const posX = event ? event.pageX : 100;
+    const posY = event ? event.pageY : 100;
+    
+    menu.css({
+        top: posY + 'px',
+        left: posX + 'px',
+        display: 'block'
+    });
+};
+function showKickContextMenu(event, userId, messageId, username, profilePic) {
+    return window.showKickContextMenu(event, userId, messageId, username, profilePic);
+}
+
+window.moderateKick = function(action, duration = null) {
+    if (!currentKickContextMenuData) return;
+    
+    const { userId, messageId, username } = currentKickContextMenuData;
+    
+    let reason = '';
+    if (action === 'ban' || action === 'timeout') {
+        reason = prompt(`Enter reason for Kick ${action}ing ${username} (optional):`);
+        if (reason === null) return; // Cancelled
+        reason = reason.trim();
+    }
+    
+    $('#kickContextMenu').hide();
+    
+    fetch('/api/kick/moderate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action: action,
+            targetUserId: userId,
+            username: username,
+            messageId: messageId,
+            duration: duration,
+            reason: reason
+        })
+    }).then(res => res.json())
+      .then(data => {
+          if (data.error) {
+              showNotification('Kick Moderation Error: ' + (data.message || data.error), 'error');
+          } else {
+              showNotification('Kick moderation successful: ' + action, 'success');
+              if (action === 'delete' && messageId) {
+                  $(`#kick-msg-${messageId} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
+                  $('.eventcontainer').find(`#kick-msg-${messageId}`).remove();
+              } else if (action === 'timeout' || action === 'ban') {
+                  $(`.kick-user-${username.toLowerCase()} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
+                  $('.eventcontainer').find(`.kick-user-${username.toLowerCase()}`).remove();
+              }
+          }
+      })
+      .catch(err => showNotification('Failed to moderate on Kick: ' + err.message, 'error'));
+};
+function moderateKick(action, duration = null) {
+    return window.moderateKick(action, duration);
+}
+
+$(document).click(function(e) {
+    if (!$(e.target).closest('#kickContextMenu').length) {
+        $('#kickContextMenu').hide();
+    }
+});
+
 function showBannedUsersModal() {
     const modal = $('#bannedUsersModal');
     if (modal.is(':visible')) {
