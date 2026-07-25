@@ -2889,22 +2889,21 @@ window.moderateKick = function(action, duration = null) {
             duration: duration,
             reason: reason
         })
-    }).then(res => res.json())
-      .then(data => {
-          if (data.error) {
-              showNotification('Kick Moderation Error: ' + (data.message || data.error), 'error');
-          } else {
-              showNotification('Kick moderation successful: ' + action, 'success');
-              if (action === 'delete' && messageId) {
-                  $(`#kick-msg-${messageId} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
-                  $('.eventcontainer').find(`#kick-msg-${messageId}`).remove();
-              } else if (action === 'timeout' || action === 'ban') {
-                  $(`.kick-user-${username.toLowerCase()} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
-                  $('.eventcontainer').find(`.kick-user-${username.toLowerCase()}`).remove();
-              }
-          }
-      })
-      .catch(err => showNotification('Failed to moderate on Kick: ' + err.message, 'error'));
+    }).then(async res => {
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            showNotification('Kick Moderation Failed: ' + (data.message || 'You do not have moderator permissions in this channel.'), 'error');
+        } else {
+            showNotification('Kick moderation successful: ' + action, 'success');
+            if (action === 'delete' && messageId) {
+                $(`#kick-msg-${messageId} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
+                $('.eventcontainer').find(`#kick-msg-${messageId}`).remove();
+            } else if (action === 'timeout' || action === 'ban') {
+                $(`.kick-user-${username.toLowerCase()} span`).css({'text-decoration': 'line-through', 'opacity': '0.5'});
+                $('.eventcontainer').find(`.kick-user-${username.toLowerCase()}`).remove();
+            }
+        }
+    }).catch(err => showNotification('Kick Moderation Failed: ' + err.message, 'error'));
 };
 function moderateKick(action, duration = null) {
     return window.moderateKick(action, duration);

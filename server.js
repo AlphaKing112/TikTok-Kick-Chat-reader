@@ -1244,22 +1244,39 @@ app.patch('/api/kick/channel', async (req, res) => {
 app.post('/api/kick/moderate', async (req, res) => {
     const { action, targetUserId, username, messageId, duration, reason } = req.body;
     if (!process.env.KICK_ACCESS_TOKEN) {
-        return res.status(400).json({ error: true, message: 'Kick access token missing. Please authorize Kick first!' });
+        return res.status(401).json({ error: true, message: 'Kick access token missing. Please authorize Kick first!' });
     }
 
     try {
         if (action === 'delete') {
-            if (messageId) {
+            if (!messageId) {
+                return res.status(400).json({ error: true, message: 'Message ID required for deletion' });
+            }
+            let success = false;
+            let lastError = null;
+
+            try {
+                await axios.delete(`https://api.kick.com/public/v1/chat/messages/${messageId}`, {
+                    headers: { 'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}` }
+                });
+                success = true;
+            } catch (e1) {
+                lastError = e1;
                 try {
-                    await axios.delete(`https://api.kick.com/public/v1/chat/messages/${messageId}`, {
-                        headers: { 'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}` }
-                    });
-                } catch (e) {
                     await axios.delete(`https://api.kick.com/public/v1/moderation/messages/${messageId}`, {
                         headers: { 'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}` }
-                    }).catch(() => {});
+                    });
+                    success = true;
+                } catch (e2) {
+                    lastError = e2;
                 }
             }
+
+            if (!success) {
+                const errMsg = lastError?.response?.data?.message || lastError?.response?.data?.error || 'Failed to delete message. Make sure you are authorized as a moderator/owner of this channel.';
+                return res.status(lastError?.response?.status || 403).json({ error: true, message: errMsg });
+            }
+
             io.emit('kickMessageDeleted', { username, messageId });
             return res.json({ success: true });
         } else if (action === 'timeout' || action === 'ban') {
@@ -1270,6 +1287,9 @@ app.post('/api/kick/moderate', async (req, res) => {
             };
             if (timeoutSecs) payload.duration = timeoutSecs;
 
+            let success = false;
+            let lastError = null;
+
             try {
                 await axios.post('https://api.kick.com/public/v1/moderation/bans', payload, {
                     headers: {
@@ -1277,23 +1297,34 @@ app.post('/api/kick/moderate', async (req, res) => {
                         'Content-Type': 'application/json'
                     }
                 });
-            } catch (e) {
-                await axios.post('https://api.kick.com/public/v1/channels/bans', payload, {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}`,
-                        'Content-Type': 'application/json'
-                    }
-                }).catch(err => {
-                    throw new Error(err.response?.data?.message || err.message);
-                });
+                success = true;
+            } catch (e1) {
+                lastError = e1;
+                try {
+                    await axios.post('https://api.kick.com/public/v1/channels/bans', payload, {
+                        headers: {
+                            'Authorization': `Bearer ${process.env.KICK_ACCESS_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    success = true;
+                } catch (e2) {
+                    lastError = e2;
+                }
             }
+
+            if (!success) {
+                const errMsg = lastError?.response?.data?.message || lastError?.response?.data?.error || `Failed to ${action} user. Make sure you are authorized as a moderator/owner of this channel.`;
+                return res.status(lastError?.response?.status || 403).json({ error: true, message: errMsg });
+            }
+
             io.emit(action === 'timeout' ? 'kickTimeout' : 'kickBan', { username, duration: timeoutSecs });
             return res.json({ success: true });
         }
         res.status(400).json({ error: true, message: 'Invalid moderation action' });
     } catch (err) {
         console.error('[Kick Moderate Error]:', err.response?.data || err.message);
-        res.status(500).json({ error: true, message: err.response?.data?.message || err.message });
+        res.status(err.response?.status || 500).json({ error: true, message: err.response?.data?.message || 'Kick moderation failed' });
     }
 });
 
