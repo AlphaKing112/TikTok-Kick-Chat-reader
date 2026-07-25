@@ -41,6 +41,10 @@
             animation: pollSlideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
+        #pollContainer.hiding {
+            animation: pollSlideOut 0.4s ease-in forwards;
+        }
+
         @keyframes pollSlideIn {
             0% {
                 opacity: 0;
@@ -55,6 +59,19 @@
             100% {
                 opacity: 1;
                 transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes pollSlideOut {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.92);
+                filter: blur(8px);
             }
         }
 
@@ -203,11 +220,22 @@
             const container = document.getElementById('pollContainer');
 
             if (!poll || !poll.active) {
-                container.classList.remove('active');
+                if (container.classList.contains('active')) {
+                    container.classList.remove('active');
+                    container.classList.add('hiding');
+                    setTimeout(() => {
+                        container.classList.remove('hiding');
+                        container.style.display = 'none';
+                    }, 400);
+                } else {
+                    container.style.display = 'none';
+                }
                 if (timerInterval) clearInterval(timerInterval);
                 return;
             }
 
+            container.classList.remove('hiding');
+            container.style.display = 'block';
             container.classList.add('active');
             document.getElementById('pollTitle').innerText = poll.title;
 

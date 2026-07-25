@@ -145,6 +145,7 @@ let globalOverlaySettings = {};
 // === GLOBAL POLL STATE MANAGER ===
 let activePoll = null;
 let pollTimerTimeout = null;
+let pollHideTimeout = null;
 
 function processPollVote(platform, username, text) {
     if (!activePoll || !activePoll.active || activePoll.ended) return;
@@ -185,14 +186,33 @@ function processPollVote(platform, username, text) {
     }
 }
 
+function finalizeAndSchedulePollRemoval() {
+    if (!activePoll || activePoll.ended) return;
+
+    if (pollTimerTimeout) clearTimeout(pollTimerTimeout);
+    if (pollHideTimeout) clearTimeout(pollHideTimeout);
+
+    activePoll.ended = true;
+    io.emit('pollEnd', getPollPayload());
+
+    // Remove overlay & reset poll state 10 seconds after poll ends
+    pollHideTimeout = setTimeout(() => {
+        if (activePoll) {
+            activePoll = { active: false };
+            io.emit('pollState', getPollPayload());
+            io.emit('pollCleared');
+        }
+    }, 10000);
+}
+
 function getPollPayload() {
     if (!activePoll) return { active: false };
     return {
         active: activePoll.active,
         ended: activePoll.ended,
         title: activePoll.title,
-        options: activePoll.options.map(o => ({ id: o.id, label: o.label, keyword: o.keyword, votes: o.votes })),
-        totalVotes: activePoll.totalVotes,
+        options: activePoll.options ? activePoll.options.map(o => ({ id: o.id, label: o.label, keyword: o.keyword, votes: o.votes })) : [],
+        totalVotes: activePoll.totalVotes || 0,
         duration: activePoll.duration,
         endTime: activePoll.endTime
     };
@@ -215,6 +235,7 @@ io.on('connection', (socket) => {
 
     socket.on('createPoll', ({ title, options, duration }) => {
         if (pollTimerTimeout) clearTimeout(pollTimerTimeout);
+        if (pollHideTimeout) clearTimeout(pollHideTimeout);
 
         const formattedOptions = (options || []).map((opt, i) => ({
             id: i + 1,
@@ -239,10 +260,7 @@ io.on('connection', (socket) => {
 
         if (endTime) {
             pollTimerTimeout = setTimeout(() => {
-                if (activePoll) {
-                    activePoll.ended = true;
-                    io.emit('pollEnd', getPollPayload());
-                }
+                finalizeAndSchedulePollRemoval();
             }, durationSec * 1000);
         }
 
@@ -251,11 +269,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('endPoll', () => {
-        if (pollTimerTimeout) clearTimeout(pollTimerTimeout);
-        if (activePoll) {
-            activePoll.ended = true;
-            io.emit('pollEnd', getPollPayload());
-        }
+        finalizeAndSchedulePollRemoval();
     });
 
     socket.on('testEvent', (data) => {
