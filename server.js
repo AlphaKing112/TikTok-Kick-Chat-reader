@@ -1141,7 +1141,7 @@ app.get('/api/twitch/auth/url', (req, res) => {
     if (!process.env.TWITCH_CLIENT_ID) {
         return res.status(400).json({ error: 'TWITCH_CLIENT_ID not configured in .env' });
     }
-    const scopes = 'moderator:manage:chat_messages user:bot channel:bot user:read:email chat:read chat:edit user:write:chat channel:moderate moderation:read channel:manage:moderators moderator:read:chatters channel:manage:broadcast user:edit:broadcast moderator:read:followers channel:read:ads';
+    const scopes = 'moderator:manage:chat_messages moderator:manage:banned_users channel:manage:vips channel:manage:moderators channel:manage:broadcast channel:manage:raids channel:edit:commercial user:bot channel:bot user:read:email chat:read chat:edit user:write:chat channel:moderate moderation:read moderator:read:chatters user:edit:broadcast moderator:read:followers channel:read:ads';
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers.host;
     const redirectUri = `${protocol}://${host}/twitch-callback.html`;
