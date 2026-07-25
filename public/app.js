@@ -1207,6 +1207,8 @@ let adCheckInterval = null;
 function startAdTracker() {
     if (adCheckInterval) clearInterval(adCheckInterval);
     
+let lastAdState = 'none';
+
     adCheckInterval = setInterval(async () => {
         if (!window.currentTwitchRoomId || window.currentTwitchRoomId === 'null' || window.currentTwitchRoomId === 'undefined') return;
         
@@ -1235,28 +1237,72 @@ function startAdTracker() {
                 const duration = adInfo.duration;
                 
                 if (now >= lastAdTime && now < (lastAdTime + duration)) {
-                    // Ad is currently playing
+                    // Ad is currently playing!
                     const remaining = (lastAdTime + duration) - now;
                     $('#twitchAdStatus').text(`Ads Playing (${remaining}s left)`);
                     $('#twitchAdTracker').css('background', 'rgba(255, 85, 85, 0.4)').css('color', '#ff5555');
-                } else if (adInfo.preroll_free_time > 0) {
-                    $('#twitchAdStatus').text(`Pre-roll free for ${Math.floor(adInfo.preroll_free_time / 60)}m ${adInfo.preroll_free_time % 60}s`);
-                    $('#twitchAdTracker').css('background', 'rgba(0, 255, 0, 0.2)').css('color', '#00ff00');
+                    
+                    showTwitchAdBannerPlaying(remaining, duration);
+                    lastAdState = 'playing';
+                } else if (lastAdState === 'playing') {
+                    // Ad just finished!
+                    showTwitchAdBannerFinished();
+                    lastAdState = 'finished';
                 } else {
-                    const timeUntilNext = nextAdTime - now;
-                    if (timeUntilNext > 0) {
-                        $('#twitchAdStatus').text(`Next ad in ${Math.floor(timeUntilNext / 60)}m ${timeUntilNext % 60}s`);
-                        $('#twitchAdTracker').css('background', 'rgba(145, 70, 255, 0.2)').css('color', '#e3e5eb');
+                    // No ads currently playing
+                    if (adInfo.preroll_free_time > 0) {
+                        $('#twitchAdStatus').text(`Pre-roll free for ${Math.floor(adInfo.preroll_free_time / 60)}m ${adInfo.preroll_free_time % 60}s`);
+                        $('#twitchAdTracker').css('background', 'rgba(0, 255, 0, 0.2)').css('color', '#00ff00');
                     } else {
-                        $('#twitchAdStatus').text(`Ad scheduled (Snoozes: ${adInfo.snooze_count})`);
-                        $('#twitchAdTracker').css('background', 'rgba(255, 170, 0, 0.2)').css('color', '#ffaa00');
+                        const timeUntilNext = nextAdTime - now;
+                        if (timeUntilNext > 0) {
+                            $('#twitchAdStatus').text(`Next ad in ${Math.floor(timeUntilNext / 60)}m ${timeUntilNext % 60}s`);
+                            $('#twitchAdTracker').css('background', 'rgba(145, 70, 255, 0.2)').css('color', '#e3e5eb');
+                        } else {
+                            $('#twitchAdStatus').text(`Ad scheduled (Snoozes: ${adInfo.snooze_count})`);
+                            $('#twitchAdTracker').css('background', 'rgba(255, 170, 0, 0.2)').css('color', '#ffaa00');
+                        }
                     }
                 }
             }
         } catch (e) {
             // Silently fail on network issues
         }
-    }, 5000); // Check every 5 seconds
+    }, 3000); // Check every 3 seconds
+}
+
+function showTwitchAdBannerPlaying(remainingSeconds, totalDuration) {
+    const banner = $('#twitchAdChatBanner');
+    if (!banner.length) return;
+
+    banner.css({
+        background: 'linear-gradient(135deg, rgba(255, 85, 85, 0.4), rgba(145, 70, 255, 0.45))',
+        borderBottom: '1px solid #ff5555'
+    }).slideDown(200);
+
+    $('#adBannerIcon').text('🚨');
+    $('#adBannerStatusText').html(`📺 <b>Twitch Commercial Break Active!</b> (${totalDuration}s duration)`);
+    $('#adBannerCountdown').text(`${remainingSeconds}s remaining`).css({ color: '#ffaa00', borderColor: '#ffaa00' });
+}
+
+function showTwitchAdBannerFinished() {
+    const banner = $('#twitchAdChatBanner');
+    if (!banner.length) return;
+
+    banner.css({
+        background: 'linear-gradient(135deg, rgba(83, 252, 24, 0.3), rgba(27, 185, 84, 0.35))',
+        borderBottom: '1px solid #53fc18'
+    }).slideDown(200);
+
+    $('#adBannerIcon').text('✅');
+    $('#adBannerStatusText').html(`✅ <b>Commercial Break Completed!</b> Stream resumed.`);
+    $('#adBannerCountdown').text(`COMPLETED`).css({ color: '#53fc18', borderColor: '#53fc18' });
+
+    showNotification('✅ Twitch Ads finished! Stream resumed.', 'success');
+
+    setTimeout(() => {
+        banner.slideUp(400);
+    }, 6000);
 }
 
 function toggleTwitchPlayer() {

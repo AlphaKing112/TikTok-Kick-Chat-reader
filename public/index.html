@@ -365,6 +365,16 @@
                         </div>
                         <div id="pinnedMessageContent" style="max-height: 100px; overflow-y: auto; font-size: 0.9em; transition: opacity 0.3s ease-out;"></div>
                     </div>
+                    <!-- Twitch Ad Alert Banner at Top of Chat Reader -->
+                    <div id="twitchAdChatBanner" style="display: none; padding: 10px 14px; background: linear-gradient(135deg, rgba(255, 85, 85, 0.35), rgba(145, 70, 255, 0.45)); border-bottom: 1px solid #9146FF; font-size: 13px; font-weight: bold; color: #fff; z-index: 100; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span id="adBannerIcon" style="font-size: 1.3em;">🚨</span>
+                                <span id="adBannerStatusText">Twitch Ads Running!</span>
+                            </div>
+                            <span id="adBannerCountdown" style="background: rgba(0, 0, 0, 0.4); padding: 3px 10px; border-radius: 12px; font-weight: 800; font-size: 0.85em; color: #ffaa00; border: 1px solid rgba(255,255,255,0.15);">0s remaining</span>
+                        </div>
+                    </div>
                     <div class="chatcontainer" style="flex: 1; overflow-y: auto; height: auto; margin: 0; border-radius: 0; box-shadow: none; background: transparent;">
                     </div>
                 </div>
