@@ -2727,24 +2727,44 @@ $(document).click(function(event) {
 });
 
 function showNotification(message, type = 'info') {
-    if (window.location.pathname.includes('obs.html')) return;
+    if (window.location.pathname.includes('obs.html') || window.location.pathname.includes('poll.html')) return;
     
-    let color = '#fff';
-    if (type === 'success') color = '#00ff00';
-    if (type === 'error') color = '#ff5555';
-    if (type === 'warning') color = '#ffaa00';
+    let color = '#ffffff';
+    let borderColor = '#58a6ff';
+    let icon = 'ℹ️';
     
-    const notification = $(`<div style="position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: #2a2a2a; color: ${color}; padding: 10px 20px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.5); z-index: 10000; font-size: 14px; opacity: 0; transition: all 0.3s ease; text-align: center; white-space: nowrap;">${message}</div>`);
-    $('body').append(notification);
+    if (type === 'success') { color = '#53fc18'; borderColor = '#53fc18'; icon = '✅'; }
+    if (type === 'error') { color = '#ff5555'; borderColor = '#ff5555'; icon = '⚠️'; }
+    if (type === 'warning') { color = '#ffaa00'; borderColor = '#ffaa00'; icon = '🔔'; }
+
+    let container = $('#toastNotificationContainer');
+    if (!container.length) {
+        container = $('<div id="toastNotificationContainer" style="position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column-reverse; gap: 8px; align-items: center; z-index: 10000; pointer-events: none; width: max-content; max-width: 90vw;"></div>');
+        $('body').append(container);
+    }
+    
+    const notification = $(`
+        <div style="background: rgba(26, 28, 46, 0.95); backdrop-filter: blur(10px); color: #ffffff; border: 1px solid ${borderColor}; padding: 10px 18px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); font-size: 13px; font-weight: bold; opacity: 0; transform: translateY(15px) scale(0.95); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; gap: 8px; pointer-events: auto; max-width: 100%; word-break: break-word;">
+            <span style="font-size: 1.1em;">${icon}</span>
+            <span style="color: ${color};">${message}</span>
+        </div>
+    `);
+    
+    container.append(notification);
     
     setTimeout(() => {
-        notification.css('opacity', '1').css('transform', 'translateX(-50%) translateY(0)');
+        notification.css('opacity', '1').css('transform', 'translateY(0) scale(1)');
     }, 10);
     
     setTimeout(() => {
-        notification.css('opacity', '0').css('transform', 'translateX(-50%) translateY(20px)');
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
+        notification.css('opacity', '0').css('transform', 'translateY(-10px) scale(0.95)');
+        setTimeout(() => {
+            notification.remove();
+            if (container.children().length === 0) {
+                container.remove();
+            }
+        }, 300);
+    }, 3500);
 }
 
 function moderateTwitchInline(userId, messageId, action, username) {
