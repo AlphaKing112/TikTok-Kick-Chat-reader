@@ -47,7 +47,7 @@
 
     <!-- Overlay Customization Panel -->
     <div id="overlayPanel" style="background: linear-gradient(135deg, #1a1c2e 0%, #16181f 100%); border: 1px solid #444; border-radius: 12px; padding: 18px 22px; margin: 18px auto; max-width: 700px; box-shadow: 0 4px 24px rgba(0,0,0,0.4);">
-        <div id="overlayPanelHeader" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 12px;" onclick="const body = document.getElementById('overlayPanelBody'); const icon = document.getElementById('expandIcon'); if(body.style.display === 'none') { body.style.display = 'block'; icon.style.transform = 'rotate(180deg)'; } else { body.style.display = 'none'; icon.style.transform = 'rotate(0deg)'; }">
+        <div id="overlayPanelHeader" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="const body = document.getElementById('overlayPanelBody'); const icon = document.getElementById('expandIcon'); if(body.style.display === 'none') { body.style.display = 'block'; icon.style.transform = 'rotate(180deg)'; } else { body.style.display = 'none'; icon.style.transform = 'rotate(0deg)'; }">
             <h3 style="margin: 0; color: #e3e5eb; font-size: 1em; display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 1.2em;">🎨</span> OBS Overlay Customization
             </h3>
@@ -55,17 +55,16 @@
                 click to expand <span id="expandIcon" style="display: inline-block; transition: transform 0.3s ease;">▼</span>
             </span>
         </div>
-        
-        <!-- Buttons are now always visible, regardless of dropdown state -->
-        <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
-            <button onclick="previewOverlay()" style="background: #2a2d3e; color: #aaa; border: 1px solid #444; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">👁️ Preview</button>
-            <button onclick="refreshOverlay()" style="background: #d92d2d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;" title="Force refresh the OBS overlay if it freezes">🔄 Refresh</button>
-            <button onclick="generateOverlay()" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95em; box-shadow: 0 2px 8px rgba(145,70,255,0.3);">🔗 Generate Overlay URL</button>
-            <button onclick="copyOverlayUrl()" style="background: #1db954; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">📋 Copy URL</button>
-        </div>
-        <div id="overlayUrlBox" style="display: none; margin-top: 12px; background: #0d0f18; border-radius: 6px; padding: 10px 14px; font-size: 0.82em; color: #58a6ff; word-break: break-all; border: 1px solid #333;"></div>
 
         <div id="overlayPanelBody" style="display: none; margin-top: 14px; border-top: 1px solid #444; padding-top: 14px;">
+            <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
+                <button onclick="previewOverlay()" style="background: #2a2d3e; color: #aaa; border: 1px solid #444; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">👁️ Preview</button>
+                <button onclick="refreshOverlay()" style="background: #d92d2d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;" title="Force refresh the OBS overlay if it freezes">🔄 Refresh</button>
+                <button onclick="generateOverlay()" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95em; box-shadow: 0 2px 8px rgba(145,70,255,0.3);">🔗 Generate Overlay URL</button>
+                <button onclick="copyOverlayUrl()" style="background: #1db954; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">📋 Copy URL</button>
+            </div>
+            <div id="overlayUrlBox" style="display: none; margin-bottom: 14px; background: #0d0f18; border-radius: 6px; padding: 10px 14px; font-size: 0.82em; color: #58a6ff; word-break: break-all; border: 1px solid #333;"></div>
+
             <!-- Google Fonts preload for previews -->
             <link rel="preconnect" href="https://fonts.googleapis.com">
             <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Outfit&family=Poppins&family=Nunito&family=Montserrat&family=Oswald&family=Bebas+Neue&display=swap" rel="stylesheet">
