@@ -23,12 +23,11 @@
 
         #pollContainer {
             width: 380px;
-            background: rgba(18, 20, 32, 0.92);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            backdrop-filter: none;
+            padding: 10px;
             opacity: 0;
             transform: translateY(-30px) scale(0.92);
             transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -105,6 +104,7 @@
             color: #f8fafc;
             margin-bottom: 16px;
             line-height: 1.35;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
         }
 
         .options-list {
@@ -115,12 +115,14 @@
 
         .option-card {
             position: relative;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(18, 20, 32, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 10px;
             padding: 10px 14px;
             overflow: hidden;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         }
 
         .option-card.winner {
