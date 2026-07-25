@@ -3068,17 +3068,11 @@ function fetchCurrentStreamInfo() {
         $('#saveStreamInfoBtn').prop('disabled', false).css('opacity', '1');
     };
 
-    $('#streamTitleInput').val('').attr('placeholder', 'Loading stream info...');
-    $('#streamGameInput').val('').attr('placeholder', 'Loading stream info...');
-
     if (currentStreamPlatform === 'kick') {
-        let kickChannel = (typeof currentKickChannel !== 'undefined' && currentKickChannel) ? currentKickChannel : '';
-        if (!kickChannel && window.authorizedKickUser) kickChannel = window.authorizedKickUser;
-        if (!kickChannel && $('#kickLinkInput').length > 0) kickChannel = $('#kickLinkInput').val().trim();
-
+        const kickChannel = $('#kickLinkInput').val() || window.currentKickChannel || window.authorizedKickUser || '';
         if (!kickChannel) {
-            $('#streamTitleInput').attr('placeholder', 'Enter Kick Stream Title...');
-            $('#streamGameInput').attr('placeholder', 'Search Kick Category (e.g. Just Chatting)...');
+            $('#streamTitleInput').val('').attr('placeholder', 'Enter Kick stream title...');
+            $('#streamGameInput').val('').attr('placeholder', 'Search category or game...');
             enableInputs();
             return;
         }
@@ -3086,40 +3080,38 @@ function fetchCurrentStreamInfo() {
         fetch('/api/kick/channel?channel=' + encodeURIComponent(kickChannel))
             .then(res => res.json())
             .then(data => {
-                $('#streamTitleInput').val(data.title || '').attr('placeholder', 'Enter Kick Stream Title...');
-                $('#streamGameInput').val(data.category_name || '').attr('placeholder', 'Search Kick Category (e.g. Just Chatting)...');
+                $('#streamTitleInput').val(data.title || '').attr('placeholder', 'Enter Kick stream title...');
+                $('#streamGameInput').val(data.category_name || '').attr('placeholder', 'Search category or game...');
                 $('#streamGameIdInput').val(data.category_id || '');
                 enableInputs();
             })
             .catch(err => {
                 console.error('Failed to load Kick stream info:', err);
-                $('#streamTitleInput').attr('placeholder', 'Enter Kick Stream Title...');
-                $('#streamGameInput').attr('placeholder', 'Search Kick Category (e.g. Just Chatting)...');
+                $('#streamTitleInput').val('').attr('placeholder', 'Enter Kick stream title...');
+                $('#streamGameInput').val('').attr('placeholder', 'Search category or game...');
                 enableInputs();
             });
         return;
     }
 
-    if (!window.currentTwitchRoomId && typeof currentTwitchChannelName === 'undefined') {
-        $('#streamTitleInput').attr('placeholder', 'Enter Twitch Stream Title...');
-        $('#streamGameInput').attr('placeholder', 'Search Twitch Category...');
+    if (!window.currentTwitchRoomId) {
+        $('#streamTitleInput').attr('placeholder', 'Not connected to Twitch');
         enableInputs();
         return;
     }
 
-    const twitchBroadcaster = window.currentTwitchRoomId || currentTwitchChannelName || '';
-    fetch('/api/twitch/channel?broadcasterId=' + encodeURIComponent(twitchBroadcaster))
+    fetch('/api/twitch/channel?broadcasterId=' + window.currentTwitchRoomId)
         .then(res => res.json())
         .then(data => {
-            $('#streamTitleInput').val(data.title || '').attr('placeholder', 'Enter Twitch Stream Title...');
-            $('#streamGameInput').val(data.game_name || '').attr('placeholder', 'Search Twitch Category...');
+            if (data.error) throw new Error(data.message);
+            $('#streamTitleInput').val(data.title || '');
+            $('#streamGameInput').val(data.game_name || '');
             $('#streamGameIdInput').val(data.game_id || '');
             enableInputs();
         })
         .catch(err => {
             console.error('Failed to load stream info:', err);
-            $('#streamTitleInput').attr('placeholder', 'Enter Twitch Stream Title...');
-            $('#streamGameInput').attr('placeholder', 'Search Twitch Category...');
+            $('#streamTitleInput').attr('placeholder', 'Failed to load title');
             enableInputs();
         });
 }
