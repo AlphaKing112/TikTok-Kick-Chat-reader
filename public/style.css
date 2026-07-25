@@ -363,6 +363,13 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     line-height: 1.4;
 }
 
+.twitch-message .platform-icon {
+    width: 26px !important;
+    height: 26px !important;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
 /* Kick Gifted Sub Styles */
 .kick-gifted-sub {
     background: rgba(40,44,60,0.85) !important;

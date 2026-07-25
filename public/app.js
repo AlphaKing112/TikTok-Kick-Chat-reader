@@ -1070,11 +1070,7 @@ $(document).ready(() => {
             
             // rawUsername is already declared above
             const twitchMessage = `<div class="twitch-message twitch-user-${data.tags['user-id']} twitch-username-${rawUsername.toLowerCase()}" id="twitch-msg-${data.tags.id}">
-                <span class="platform-icon-badge" style="display:inline-flex; align-items:center; justify-content:center; background:#9146FF; border-radius:5px; padding:3px 5px; margin-right:6px; vertical-align:middle; box-shadow:0 0 8px rgba(145, 70, 255, 0.8), 0 2px 4px rgba(0,0,0,0.5);">
-                    <svg style="width:14px;height:14px;display:block;" viewBox="0 0 24 24">
-                        <path fill="#FFFFFF" d="M11.571 4.714h1.715v5.143H11.571zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
-                    </svg>
-                </span>
+                <svg class="platform-icon" style="width:26px;height:26px;vertical-align:middle;margin-right:6px;filter:drop-shadow(1px 1px 2px rgba(0,0,0,0.8));" viewBox="0 0 512 512"><path fill="#9146FF" d="M391.2 103.5H352.5v109.7h38.6zM285 103H246.4V212.8H285zM120.8 0 24.3 91.4V420.6H140.1V512l96.5-91.4h77.3L487.7 256V0zM449.1 237.8l-77.2 73-15.1 14.3-30 14.3-58 14.3H236.6l-77.3 73.1v-73.1H91.9V36.6h357.2z"/></svg>
                 ${profilePicHtml}
                 ${badgeHtml}<b style="color: ${color}; cursor: pointer;" onclick="showTwitchContextMenu(event, '${data.tags['user-id']}', '${data.tags['room-id']}', '${data.tags.id}', '${safeDisplayName}', ${!!(data.tags.badges && data.tags.badges.vip)}, '${(data.tags['badge-info'] && data.tags['badge-info'].subscriber) ? data.tags['badge-info'].subscriber : ''}', '${data.profilePic || ''}')">${sanitize(displayName)}:</b>
                 <span>${parsedMessage}</span>
