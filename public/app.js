@@ -2325,7 +2325,11 @@ function moderateTwitch(action, duration = null) {
     }).then(res => res.json())
       .then(data => {
           if (data.error) {
-              showNotification('Moderation Error: ' + data.error, 'error');
+              if (data.needsReauth || (typeof data.error === 'string' && data.error.includes('Missing scope'))) {
+                  showNotification('🔑 Twitch Re-authorization Required! Click "Logout Twitch ❌" then "Authorize Twitch 🔑" to enable VIP & Moderation.', 'warning');
+              } else {
+                  showNotification('Moderation Error: ' + data.error, 'error');
+              }
           } else {
               showNotification('Moderation action successful: ' + action, 'success');
               if (action === 'delete' && messageId) {

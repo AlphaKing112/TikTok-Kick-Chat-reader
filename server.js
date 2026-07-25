@@ -953,7 +953,17 @@ app.post('/api/twitch/moderate', async (req, res) => {
         return res.status(400).json({ error: 'Invalid action' });
     } catch (error) {
         console.error('[Twitch] Moderation Error:', error.response?.data || error.message);
-        return res.status(500).json({ error: error.response?.data?.message || error.message });
+        const errMsg = error.response?.data?.message || error.message;
+        const isScopeError = errMsg.includes('Missing scope') || (error.response?.status === 401 || error.response?.status === 403);
+        
+        if (isScopeError) {
+            return res.status(403).json({ 
+                error: `${errMsg}. Please click "Logout Twitch ❌" and then "Authorize Twitch 🔑" to update your account permissions.`,
+                needsReauth: true 
+            });
+        }
+        
+        return res.status(500).json({ error: errMsg });
     }
 });
 
