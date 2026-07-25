@@ -58,12 +58,10 @@
 
         <div id="overlayPanelBody" style="display: none; margin-top: 14px; border-top: 1px solid #444; padding-top: 14px;">
             <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
-                <button onclick="openPollModal()" style="background: linear-gradient(90deg, #ffaa00, #ff5555); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9em; box-shadow: 0 2px 8px rgba(255,170,0,0.3);">📊 Create Poll</button>
-                <button onclick="copyPollOverlayUrl()" style="background: #9146FF; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">📋 Copy Poll Overlay URL</button>
-                <button onclick="previewOverlay()" style="background: #2a2d3e; color: #aaa; border: 1px solid #444; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">👁️ Preview Overlay</button>
+                <button onclick="previewOverlay()" style="background: #2a2d3e; color: #aaa; border: 1px solid #444; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">👁️ Preview</button>
                 <button onclick="refreshOverlay()" style="background: #d92d2d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;" title="Force refresh the OBS overlay if it freezes">🔄 Refresh</button>
-                <button onclick="generateOverlay()" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95em; box-shadow: 0 2px 8px rgba(145,70,255,0.3);">🔗 Generate Chat Overlay URL</button>
-                <button onclick="copyOverlayUrl()" style="background: #1db954; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">📋 Copy Chat URL</button>
+                <button onclick="generateOverlay()" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95em; box-shadow: 0 2px 8px rgba(145,70,255,0.3);">🔗 Generate Overlay URL</button>
+                <button onclick="copyOverlayUrl()" style="background: #1db954; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">📋 Copy URL</button>
             </div>
             <div id="overlayUrlBox" style="display: none; margin-bottom: 14px; background: #0d0f18; border-radius: 6px; padding: 10px 14px; font-size: 0.82em; color: #58a6ff; word-break: break-all; border: 1px solid #333;"></div>
 
@@ -648,10 +646,11 @@ function copyOverlayUrl() {
             <option value="0">No Limit (Manual End)</option>
         </select>
 
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
             <button onclick="startPollSubmit()" style="flex: 2; background: linear-gradient(90deg, #ffaa00, #ff5555); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">🚀 Start Poll</button>
-            <button onclick="endPollSubmit()" style="flex: 1; background: #d92d2d; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">🛑 End Active Poll</button>
+            <button onclick="endPollSubmit()" style="flex: 1; background: #d92d2d; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">🛑 End Poll</button>
         </div>
+        <button onclick="copyPollOverlayUrl()" style="width: 100%; background: #2a2d3e; color: #58a6ff; border: 1px solid #444; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85em;">📋 Copy Poll Overlay URL for OBS</button>
     </div>
     <div id="pollModalBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9998;" onclick="$('#pollModal').hide(); $('#pollModalBackdrop').hide();"></div>
 
