@@ -10,8 +10,9 @@ It features built-in Twitch & Kick authentication, channel stream title manageme
 
 - **Unified Chat:** Read Twitch, TikTok, and Kick chats side-by-side in real time.
 - **OBS Stream Overlay:** Transparent `/obs.html` page that integrates directly into OBS Studio with slick animations and auto-scroll.
+- **Interactive Live Polls:** Create real-time stream polls from the dashboard with custom options and chat vote keywords (`1`, `2`, `GTA`, `Fortnite`). Viewers on Twitch, Kick, and TikTok vote by typing keywords in chat (1 vote per user max). Results render dynamically on a dedicated OBS poll overlay (`/poll.html`) with animated progress bars!
 - **Kick & Twitch Authorization:** 1-click popup authorization for Kick & Twitch that displays the logged-in username directly next to the Logout button.
-- **Stream Title Management:** Easily edit your stream title for **Kick** and **Twitch** directly from the **🎬 (Channel Actions)** modal in the chat UI.
+- **Stream Title & Category Management:** Easily edit your stream title and search categories for **Kick** and **Twitch** directly from the **🎬 (Channel Actions)** modal in the chat UI.
 - **Kick & Twitch Moderation:** Click any Kick or Twitch username in chat to **Delete Message**, **Timeout User (1m, 10m, 1h)**, or **Ban User**. Deleted/moderated messages are instantly removed from the OBS stream overlay!
 - **Dynamic Emotes & Badges:** Automatically fetches custom channel emotes and global badges.
 

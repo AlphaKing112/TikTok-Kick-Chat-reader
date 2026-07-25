@@ -142,6 +142,62 @@ app.use(express.json());
 
 let globalOverlaySettings = {};
 
+// === GLOBAL POLL STATE MANAGER ===
+let activePoll = null;
+let pollTimerTimeout = null;
+
+function processPollVote(platform, username, text) {
+    if (!activePoll || !activePoll.active || activePoll.ended) return;
+    if (!text || !username) return;
+
+    const trimmedText = text.trim().toLowerCase();
+    const userKey = `${platform.toLowerCase()}:${username.toLowerCase()}`;
+
+    let matchedOptionId = null;
+
+    activePoll.options.forEach((opt, idx) => {
+        const kw = (opt.keyword || '').trim().toLowerCase();
+        const indexStr = (idx + 1).toString();
+        
+        if (trimmedText === kw || trimmedText === indexStr || trimmedText === `!vote ${kw}` || trimmedText === `!vote ${indexStr}`) {
+            matchedOptionId = opt.id;
+        }
+    });
+
+    if (matchedOptionId !== null) {
+        const previousVote = activePoll.voterMap.get(userKey);
+
+        if (previousVote === matchedOptionId) return; // Same vote
+
+        if (previousVote !== undefined) {
+            const prevOpt = activePoll.options.find(o => o.id === previousVote);
+            if (prevOpt && prevOpt.votes > 0) prevOpt.votes -= 1;
+        }
+
+        const newOpt = activePoll.options.find(o => o.id === matchedOptionId);
+        if (newOpt) {
+            newOpt.votes += 1;
+            activePoll.voterMap.set(userKey, matchedOptionId);
+            activePoll.totalVotes = activePoll.voterMap.size;
+
+            io.emit('pollUpdate', getPollPayload());
+        }
+    }
+}
+
+function getPollPayload() {
+    if (!activePoll) return { active: false };
+    return {
+        active: activePoll.active,
+        ended: activePoll.ended,
+        title: activePoll.title,
+        options: activePoll.options.map(o => ({ id: o.id, label: o.label, keyword: o.keyword, votes: o.votes })),
+        totalVotes: activePoll.totalVotes,
+        duration: activePoll.duration,
+        endTime: activePoll.endTime
+    };
+}
+
 io.on('connection', (socket) => {
     let tiktokConnectionWrapper = null;
     let kickChatClient = null;
@@ -149,6 +205,58 @@ io.on('connection', (socket) => {
     let twitchChatClient = null;
 
     console.info('New connection from origin', socket.handshake.headers['origin'] || socket.handshake.headers['referer']);
+
+    // Send poll state on connect
+    socket.emit('pollState', getPollPayload());
+
+    socket.on('getPollState', () => {
+        socket.emit('pollState', getPollPayload());
+    });
+
+    socket.on('createPoll', ({ title, options, duration }) => {
+        if (pollTimerTimeout) clearTimeout(pollTimerTimeout);
+
+        const formattedOptions = (options || []).map((opt, i) => ({
+            id: i + 1,
+            label: opt.label || `Option ${i + 1}`,
+            keyword: opt.keyword || (i + 1).toString(),
+            votes: 0
+        }));
+
+        const durationSec = parseInt(duration) || 0;
+        const endTime = durationSec > 0 ? Date.now() + (durationSec * 1000) : null;
+
+        activePoll = {
+            active: true,
+            ended: false,
+            title: title || 'Live Stream Poll',
+            options: formattedOptions,
+            totalVotes: 0,
+            voterMap: new Map(),
+            duration: durationSec,
+            endTime: endTime
+        };
+
+        if (endTime) {
+            pollTimerTimeout = setTimeout(() => {
+                if (activePoll) {
+                    activePoll.ended = true;
+                    io.emit('pollEnd', getPollPayload());
+                }
+            }, durationSec * 1000);
+        }
+
+        io.emit('pollCreated', getPollPayload());
+        io.emit('pollUpdate', getPollPayload());
+    });
+
+    socket.on('endPoll', () => {
+        if (pollTimerTimeout) clearTimeout(pollTimerTimeout);
+        if (activePoll) {
+            activePoll.ended = true;
+            io.emit('pollEnd', getPollPayload());
+        }
+    });
 
     socket.on('testEvent', (data) => {
         console.log('[Test] testEvent received:', data);
@@ -299,7 +407,10 @@ io.on('connection', (socket) => {
         };
 
         // Forward events to the client using the shim
-        tiktokConnectionWrapper.connection.on('chat', (data) => emitTikTok('chat', data));
+        tiktokConnectionWrapper.connection.on('chat', (data) => {
+            if (data) processPollVote('tiktok', data.uniqueId || data.nickname, data.comment || data.content || '');
+            emitTikTok('chat', data);
+        });
         tiktokConnectionWrapper.connection.on('member', (data) => emitTikTok('member', data));
         tiktokConnectionWrapper.connection.on('gift', (data) => emitTikTok('gift', data));
         tiktokConnectionWrapper.connection.on('roomUser', (data) => {
@@ -445,6 +556,10 @@ io.on('connection', (socket) => {
                     return;
                 }
                 
+                if (msg.sender && msg.sender.username && msg.content) {
+                    processPollVote('kick', msg.sender.username, msg.content);
+                }
+
                 console.log(`[Kick] Chat message received:`, msg);
                 
                 // Fetch avatar asynchronously to avoid delaying chat messages!
@@ -640,6 +755,7 @@ io.on('connection', (socket) => {
             if (self) return;
             
             const username = tags.username || tags['display-name'];
+            processPollVote('twitch', username, message);
             const profilePic = await fetchTwitchAvatar(username);
             
             socket.emit('twitchChat', {

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Poll Overlay</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: transparent;
+            font-family: 'Outfit', sans-serif;
+            color: #ffffff;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        #pollContainer {
+            width: 380px;
+            background: rgba(14, 16, 27, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+        }
+
+        #pollContainer.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .poll-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .poll-tag {
+            background: linear-gradient(135deg, #9146FF, #53fc18);
+            color: #000;
+            font-weight: 800;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .poll-timer {
+            font-size: 0.85em;
+            color: #aaa;
+            font-weight: 600;
+        }
+
+        .poll-title {
+            font-size: 1.15em;
+            font-weight: 700;
+            color: #f1f2f6;
+            margin-bottom: 16px;
+            line-height: 1.3;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-card {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 12px 14px;
+            overflow: hidden;
+            transition: border-color 0.3s ease;
+        }
+
+        .option-card.winner {
+            border-color: #53fc18;
+            box-shadow: 0 0 15px rgba(83, 252, 24, 0.3);
+        }
+
+        .bar-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 0%;
+            background: linear-gradient(90deg, rgba(145, 70, 255, 0.4), rgba(83, 252, 24, 0.4));
+            border-radius: 9px;
+            transition: width 0.5s ease-out;
+            z-index: 1;
+        }
+
+        .option-card.winner .bar-fill {
+            background: linear-gradient(90deg, rgba(83, 252, 24, 0.5), rgba(83, 252, 24, 0.8));
+        }
+
+        .option-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .option-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option-keyword {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-size: 0.75em;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+
+        .option-label {
+            font-weight: 600;
+            font-size: 0.95em;
+            color: #e2e8f0;
+        }
+
+        .option-stats {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+
+        .option-percentage {
+            color: #53fc18;
+        }
+
+        .option-votes {
+            color: #94a3b8;
+            font-size: 0.8em;
+        }
+
+        .poll-footer {
+            margin-top: 14px;
+            text-align: center;
+            font-size: 0.75em;
+            color: #64748b;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="pollContainer">
+        <div class="poll-header">
+            <span class="poll-tag" id="pollTag">LIVE POLL</span>
+            <span class="poll-timer" id="pollTimer">00:00</span>
+        </div>
+        <div class="poll-title" id="pollTitle">Loading Poll...</div>
+        <div class="options-list" id="optionsList"></div>
+        <div class="poll-footer" id="pollFooter">Type option keyword in chat to vote!</div>
+    </div>
+
+    <script>
+        const socket = io();
+        let timerInterval = null;
+
+        function updatePollUI(poll) {
+            if (!poll || !poll.active) {
+                document.getElementById('pollContainer').classList.remove('active');
+                if (timerInterval) clearInterval(timerInterval);
+                return;
+            }
+
+            const container = document.getElementById('pollContainer');
+            container.classList.add('active');
+
+            document.getElementById('pollTitle').innerText = poll.title;
+
+            if (poll.ended) {
+                document.getElementById('pollTag').innerText = 'ENDED';
+                document.getElementById('pollTag').style.background = '#ff5555';
+                document.getElementById('pollTimer').innerText = 'FINAL';
+                document.getElementById('pollFooter').innerText = `Total Votes: ${poll.totalVotes}`;
+                if (timerInterval) clearInterval(timerInterval);
+            } else {
+                document.getElementById('pollTag').innerText = 'LIVE POLL';
+                document.getElementById('pollTag').style.background = 'linear-gradient(135deg, #9146FF, #53fc18)';
+                document.getElementById('pollFooter').innerText = `Type keyword in chat to vote! (${poll.totalVotes} votes)`;
+                startTimer(poll.endTime);
+            }
+
+            const list = document.getElementById('optionsList');
+            list.innerHTML = '';
+
+            let maxVotes = -1;
+            if (poll.ended) {
+                poll.options.forEach(opt => {
+                    if (opt.votes > maxVotes && opt.votes > 0) maxVotes = opt.votes;
+                });
+            }
+
+            poll.options.forEach(opt => {
+                const percent = poll.totalVotes > 0 ? Math.round((opt.votes / poll.totalVotes) * 100) : 0;
+                const isWinner = poll.ended && opt.votes === maxVotes && maxVotes > 0;
+
+                const card = document.createElement('div');
+                card.className = `option-card ${isWinner ? 'winner' : ''}`;
+
+                card.innerHTML = `
+                    <div class="bar-fill" style="width: ${percent}%"></div>
+                    <div class="option-content">
+                        <div class="option-info">
+                            <span class="option-keyword">${opt.keyword}</span>
+                            <span class="option-label">${opt.label}</span>
+                        </div>
+                        <div class="option-stats">
+                            <span class="option-percentage">${percent}%</span>
+                            <span class="option-votes">(${opt.votes})</span>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function startTimer(endTime) {
+            if (timerInterval) clearInterval(timerInterval);
+            if (!endTime) {
+                document.getElementById('pollTimer').innerText = 'NO LIMIT';
+                return;
+            }
+
+            const updateTimer = () => {
+                const now = Date.now();
+                const remainingSec = Math.max(0, Math.ceil((endTime - now) / 1000));
+                
+                const mins = Math.floor(remainingSec / 60).toString().padStart(2, '0');
+                const secs = (remainingSec % 60).toString().padStart(2, '0');
+                document.getElementById('pollTimer').innerText = `${mins}:${secs}`;
+
+                if (remainingSec <= 0) {
+                    clearInterval(timerInterval);
+                }
+            };
+
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        socket.on('connect', () => {
+            socket.emit('getPollState');
+        });
+
+        socket.on('pollState', (poll) => updatePollUI(poll));
+        socket.on('pollUpdate', (poll) => updatePollUI(poll));
+        socket.on('pollEnd', (poll) => updatePollUI(poll));
+    </script>
+</body>
+</html>

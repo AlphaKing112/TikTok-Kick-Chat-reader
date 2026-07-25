@@ -58,10 +58,12 @@
 
         <div id="overlayPanelBody" style="display: none; margin-top: 14px; border-top: 1px solid #444; padding-top: 14px;">
             <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
-                <button onclick="previewOverlay()" style="background: #2a2d3e; color: #aaa; border: 1px solid #444; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">👁️ Preview</button>
+                <button onclick="openPollModal()" style="background: linear-gradient(90deg, #ffaa00, #ff5555); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9em; box-shadow: 0 2px 8px rgba(255,170,0,0.3);">📊 Create Poll</button>
+                <button onclick="copyPollOverlayUrl()" style="background: #9146FF; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">📋 Copy Poll Overlay URL</button>
+                <button onclick="previewOverlay()" style="background: #2a2d3e; color: #aaa; border: 1px solid #444; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">👁️ Preview Overlay</button>
                 <button onclick="refreshOverlay()" style="background: #d92d2d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;" title="Force refresh the OBS overlay if it freezes">🔄 Refresh</button>
-                <button onclick="generateOverlay()" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95em; box-shadow: 0 2px 8px rgba(145,70,255,0.3);">🔗 Generate Overlay URL</button>
-                <button onclick="copyOverlayUrl()" style="background: #1db954; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">📋 Copy URL</button>
+                <button onclick="generateOverlay()" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95em; box-shadow: 0 2px 8px rgba(145,70,255,0.3);">🔗 Generate Chat Overlay URL</button>
+                <button onclick="copyOverlayUrl()" style="background: #1db954; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">📋 Copy Chat URL</button>
             </div>
             <div id="overlayUrlBox" style="display: none; margin-bottom: 14px; background: #0d0f18; border-radius: 6px; padding: 10px 14px; font-size: 0.82em; color: #58a6ff; word-break: break-all; border: 1px solid #333;"></div>
 
@@ -614,7 +616,43 @@ function copyOverlayUrl() {
             </div>
         </div>
     </div>
-    <div id="channelActionsBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998;" onclick="$('#channelActionsModal').hide(); $('#channelActionsBackdrop').hide();"></div>
+    <!-- Poll Creation Modal -->
+    <div id="pollModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1c2e; border: 1px solid #ffaa00; border-radius: 14px; padding: 22px; width: 420px; z-index: 9999; box-shadow: 0 8px 40px rgba(0,0,0,0.8);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; color: #ffaa00; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">📊 Create Stream Poll</h3>
+            <button onclick="$('#pollModal').hide(); $('#pollModalBackdrop').hide();" style="background: none; border: none; color: #aaa; font-size: 1.4em; cursor: pointer;">×</button>
+        </div>
+
+        <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px; font-weight: bold;">POLL QUESTION / TITLE</label>
+        <input type="text" id="pollTitleInput" placeholder="e.g. What game should we play next?" style="width: 100%; box-sizing: border-box; background: #0e0e14; border: 1px solid #444; color: white; padding: 9px; border-radius: 6px; margin-bottom: 15px;">
+
+        <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px; font-weight: bold;">POLL OPTIONS & CHAT TRIGGERS</label>
+        <div id="pollOptionsContainer" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+            <div class="poll-option-row" style="display: flex; gap: 8px;">
+                <input type="text" class="poll-option-label" placeholder="Option 1 (e.g. GTA V)" style="flex: 2; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px;">
+                <input type="text" class="poll-option-kw" value="1" placeholder="Keyword (e.g. 1)" style="flex: 1; background: #0e0e14; border: 1px solid #444; color: #53fc18; font-weight: bold; padding: 8px; border-radius: 6px;">
+            </div>
+            <div class="poll-option-row" style="display: flex; gap: 8px;">
+                <input type="text" class="poll-option-label" placeholder="Option 2 (e.g. Fortnite)" style="flex: 2; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px;">
+                <input type="text" class="poll-option-kw" value="2" placeholder="Keyword (e.g. 2)" style="flex: 1; background: #0e0e14; border: 1px solid #444; color: #53fc18; font-weight: bold; padding: 8px; border-radius: 6px;">
+            </div>
+        </div>
+        <button onclick="addPollOptionRow()" style="background: transparent; color: #58a6ff; border: 1px dashed #58a6ff; width: 100%; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.85em; margin-bottom: 15px;">+ Add Option</button>
+
+        <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px; font-weight: bold;">DURATION</label>
+        <select id="pollDurationSelect" style="width: 100%; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px; margin-bottom: 20px;">
+            <option value="60">1 Minute (60s)</option>
+            <option value="120">2 Minutes (120s)</option>
+            <option value="300">5 Minutes (300s)</option>
+            <option value="0">No Limit (Manual End)</option>
+        </select>
+
+        <div style="display: flex; gap: 10px;">
+            <button onclick="startPollSubmit()" style="flex: 2; background: linear-gradient(90deg, #ffaa00, #ff5555); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">🚀 Start Poll</button>
+            <button onclick="endPollSubmit()" style="flex: 1; background: #d92d2d; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">🛑 End Active Poll</button>
+        </div>
+    </div>
+    <div id="pollModalBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9998;" onclick="$('#pollModal').hide(); $('#pollModalBackdrop').hide();"></div>
 
 </body>
 </html>

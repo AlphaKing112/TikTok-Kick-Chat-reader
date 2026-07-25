@@ -3349,3 +3349,66 @@ function cancelRaid() {
     })
     .catch(err => showNotification('Cancel failed: ' + err.message, 'error'));
 }
+
+window.openPollModal = function() {
+    $('#pollModal').show();
+    $('#pollModalBackdrop').show();
+};
+
+window.addPollOptionRow = function() {
+    const count = $('.poll-option-row').length + 1;
+    const row = $(`
+        <div class="poll-option-row" style="display: flex; gap: 8px;">
+            <input type="text" class="poll-option-label" placeholder="Option ${count}" style="flex: 2; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px;">
+            <input type="text" class="poll-option-kw" value="${count}" placeholder="Keyword" style="flex: 1; background: #0e0e14; border: 1px solid #444; color: #53fc18; font-weight: bold; padding: 8px; border-radius: 6px;">
+        </div>
+    `);
+    $('#pollOptionsContainer').append(row);
+};
+
+window.startPollSubmit = function() {
+    const title = $('#pollTitleInput').val().trim() || 'Live Stream Poll';
+    const options = [];
+    $('.poll-option-row').each(function() {
+        const label = $(this).find('.poll-option-label').val().trim();
+        const kw = $(this).find('.poll-option-kw').val().trim();
+        if (label || kw) {
+            options.push({ label: label || kw, keyword: kw || label });
+        }
+    });
+
+    if (options.length < 2) {
+        showNotification('Please add at least 2 options for the poll!', 'error');
+        return;
+    }
+
+    const duration = $('#pollDurationSelect').val();
+
+    if (window.connection && window.connection.socket) {
+        window.connection.socket.emit('createPoll', { title, options, duration });
+        showNotification('🚀 Poll started successfully!', 'success');
+        $('#pollModal').hide();
+        $('#pollModalBackdrop').hide();
+    } else {
+        showNotification('Socket connection not ready!', 'error');
+    }
+};
+
+window.endPollSubmit = function() {
+    if (window.connection && window.connection.socket) {
+        window.connection.socket.emit('endPoll');
+        showNotification('🛑 Poll ended!', 'info');
+        $('#pollModal').hide();
+        $('#pollModalBackdrop').hide();
+    }
+};
+
+window.copyPollOverlayUrl = function() {
+    const origin = window.location.origin;
+    const pollUrl = `${origin}/poll.html`;
+    navigator.clipboard.writeText(pollUrl).then(() => {
+        showNotification('📋 Poll Overlay URL copied to clipboard: ' + pollUrl, 'success');
+    }).catch(() => {
+        prompt('Copy Poll Overlay URL:', pollUrl);
+    });
+};
