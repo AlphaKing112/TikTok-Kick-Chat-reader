@@ -1137,6 +1137,18 @@ app.get('/api/kick-oauth/callback', async (req, res) => {
             process.env.KICK_ACCESS_TOKEN = tokenData.access_token;
             if (tokenData.refresh_token) process.env.KICK_REFRESH_TOKEN = tokenData.refresh_token;
 
+            // Fetch and cache exact Kick username
+            try {
+                const uRes = await axios.get('https://api.kick.com/public/v1/users', {
+                    headers: { 'Authorization': `Bearer ${tokenData.access_token}`, 'Accept': 'application/json' }
+                });
+                const uData = uRes.data;
+                const u = Array.isArray(uData.data) ? uData.data[0] : (uData.data || uData);
+                if (u && (u.username || u.name)) {
+                    process.env.KICK_USERNAME = u.username || u.name;
+                }
+            } catch (e) {}
+
             const envPath = path.join(__dirname, '.env');
             if (fs.existsSync(envPath)) {
                 let envContent = fs.readFileSync(envPath, 'utf8');
@@ -1145,9 +1157,16 @@ app.get('/api/kick-oauth/callback', async (req, res) => {
                 } else {
                     envContent += `\nKICK_ACCESS_TOKEN=${tokenData.access_token}`;
                 }
+                if (process.env.KICK_USERNAME) {
+                    if (envContent.includes('KICK_USERNAME=')) {
+                        envContent = envContent.replace(/KICK_USERNAME=.*/g, `KICK_USERNAME=${process.env.KICK_USERNAME}`);
+                    } else {
+                        envContent += `\nKICK_USERNAME=${process.env.KICK_USERNAME}`;
+                    }
+                }
                 fs.writeFileSync(envPath, envContent);
             } else {
-                fs.writeFileSync(envPath, `KICK_ACCESS_TOKEN=${tokenData.access_token}`);
+                fs.writeFileSync(envPath, `KICK_ACCESS_TOKEN=${tokenData.access_token}\nKICK_USERNAME=${process.env.KICK_USERNAME || ''}`);
             }
 
             return res.sendFile(path.join(__dirname, 'public', 'kick-callback.html'));
@@ -1166,6 +1185,10 @@ app.get('/api/kick/auth/status', async (req, res) => {
     const hasToken = !!process.env.KICK_ACCESS_TOKEN;
     if (!hasToken) return res.json({ authorized: false });
 
+    if (process.env.KICK_USERNAME) {
+        return res.json({ authorized: true, username: process.env.KICK_USERNAME, displayName: process.env.KICK_USERNAME });
+    }
+
     try {
         const response = await axios.get('https://api.kick.com/public/v1/users', {
             headers: {
@@ -1176,21 +1199,25 @@ app.get('/api/kick/auth/status', async (req, res) => {
         const data = response.data;
         const user = Array.isArray(data.data) ? data.data[0] : (data.data || data);
         if (user && (user.username || user.name)) {
-            res.json({ authorized: true, username: user.username || user.name, displayName: user.name || user.username });
+            const name = user.username || user.name;
+            process.env.KICK_USERNAME = name;
+            res.json({ authorized: true, username: name, displayName: user.name || name });
         } else {
-            res.json({ authorized: true, username: 'Kick Streamer' });
+            res.json({ authorized: true, username: process.env.KICK_CHANNEL_NAME || 'Kick User' });
         }
     } catch (e) {
-        res.json({ authorized: hasToken, username: process.env.KICK_CHANNEL_NAME || 'Kick Streamer' });
+        res.json({ authorized: hasToken, username: process.env.KICK_USERNAME || process.env.KICK_CHANNEL_NAME || 'Authorized' });
     }
 });
 
 app.post('/api/kick/auth/logout', (req, res) => {
     process.env.KICK_ACCESS_TOKEN = '';
+    process.env.KICK_USERNAME = '';
     const envPath = path.join(__dirname, '.env');
     if (fs.existsSync(envPath)) {
         let envContent = fs.readFileSync(envPath, 'utf8');
         envContent = envContent.replace(/KICK_ACCESS_TOKEN=.*/g, 'KICK_ACCESS_TOKEN=');
+        envContent = envContent.replace(/KICK_USERNAME=.*/g, 'KICK_USERNAME=');
         fs.writeFileSync(envPath, envContent);
     }
     res.json({ success: true });
