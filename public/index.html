@@ -650,6 +650,17 @@ function copyOverlayUrl() {
             <button onclick="startPollSubmit()" style="flex: 2; background: linear-gradient(90deg, #ffaa00, #ff5555); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">🚀 Start Poll</button>
             <button onclick="endPollSubmit()" style="flex: 1; background: #d92d2d; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">🛑 End Poll</button>
         </div>
+
+        <!-- Live Results Box inside Poll Modal -->
+        <div id="modalLivePollResults" style="display: none; margin-bottom: 12px; background: #0e0e14; border: 1px solid #333; border-radius: 8px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span id="modalPollBadge" style="background: #53fc18; color: #000; font-weight: 800; font-size: 0.7em; padding: 2px 8px; border-radius: 12px; text-transform: uppercase;">LIVE RESULTS</span>
+                <span id="modalPollTotalVotes" style="color: #aaa; font-size: 0.8em; font-weight: bold;">0 Votes</span>
+            </div>
+            <div id="modalPollTitleDisplay" style="color: #fff; font-weight: bold; font-size: 0.9em; margin-bottom: 8px;"></div>
+            <div id="modalPollList" style="display: flex; flex-direction: column; gap: 6px;"></div>
+        </div>
+
         <button onclick="copyPollOverlayUrl()" style="width: 100%; background: #2a2d3e; color: #58a6ff; border: 1px solid #444; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85em;">📋 Copy Poll Overlay URL for OBS</button>
     </div>
     <div id="pollModalBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9998;" onclick="$('#pollModal').hide(); $('#pollModalBackdrop').hide();"></div>

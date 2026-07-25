@@ -3412,3 +3412,50 @@ window.copyPollOverlayUrl = function() {
         prompt('Copy Poll Overlay URL:', pollUrl);
     });
 };
+
+function renderModalPollResults(poll) {
+    if (!poll || !poll.active) {
+        $('#modalLivePollResults').hide();
+        return;
+    }
+
+    $('#modalLivePollResults').show();
+    $('#modalPollTitleDisplay').text(poll.title);
+    $('#modalPollTotalVotes').text(`${poll.totalVotes} Vote${poll.totalVotes === 1 ? '' : 's'}`);
+
+    if (poll.ended) {
+        $('#modalPollBadge').text('ENDED').css({ background: '#ff5555', color: '#fff' });
+    } else {
+        $('#modalPollBadge').text('LIVE RESULTS').css({ background: '#53fc18', color: '#000' });
+    }
+
+    const list = $('#modalPollList');
+    list.empty();
+
+    poll.options.forEach(opt => {
+        const percent = poll.totalVotes > 0 ? Math.round((opt.votes / poll.totalVotes) * 100) : 0;
+        const row = $(`
+            <div style="position: relative; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 6px 10px; overflow: hidden;">
+                <div style="position: absolute; top:0; left:0; bottom:0; width: ${percent}%; background: rgba(83, 252, 24, 0.25); border-radius: 6px; transition: width 0.4s ease;"></div>
+                <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; font-size: 0.85em;">
+                    <div>
+                        <span style="background: rgba(255,255,255,0.15); color: #53fc18; font-weight: bold; padding: 1px 5px; border-radius: 3px; font-size: 0.8em; margin-right: 6px;">${opt.keyword}</span>
+                        <span style="color: #fff; font-weight: bold;">${opt.label}</span>
+                    </div>
+                    <div>
+                        <span style="color: #53fc18; font-weight: bold; margin-right: 4px;">${percent}%</span>
+                        <span style="color: #888; font-size: 0.85em;">(${opt.votes})</span>
+                    </div>
+                </div>
+            </div>
+        `);
+        list.append(row);
+    });
+}
+
+// Bind socket poll events for dashboard live updates
+if (window.connection && window.connection.socket) {
+    window.connection.socket.on('pollState', renderModalPollResults);
+    window.connection.socket.on('pollUpdate', renderModalPollResults);
+    window.connection.socket.on('pollEnd', renderModalPollResults);
+}
