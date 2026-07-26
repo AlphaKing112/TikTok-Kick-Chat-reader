@@ -1863,7 +1863,7 @@ app.get('/api/twitch/ads', async (req, res) => {
     }
 
     if (!process.env.TWITCH_CLIENT_ID || !process.env.TWITCH_ACCESS_TOKEN) {
-        return res.status(400).json({ error: 'Twitch API credentials not configured', unauthenticated: true });
+        return res.json({ error: 'Twitch API credentials not configured', unauthenticated: true });
     }
 
     try {
@@ -1879,12 +1879,14 @@ app.get('/api/twitch/ads', async (req, res) => {
         const errorMessage = error.response?.data?.message || error.message;
         const isAuthError = statusCode === 401 || statusCode === 403;
         
-        return res.status(isAuthError ? 401 : 400).json({ 
+        return res.json({ 
             error: errorMessage, 
-            unauthenticated: isAuthError 
+            unauthenticated: isAuthError,
+            status: statusCode
         });
     }
 });
+
 
 // TWITCH CHANNEL ACTIONS ENDPOINTS
 app.get('/api/twitch/userinfo', async (req, res) => {

@@ -736,6 +736,9 @@ $(document).ready(() => {
                         if (!window.currentTwitchRoomId && typeof currentTwitchChannelName !== 'undefined' && currentTwitchChannelName) {
                             window.connection.socket.emit('setTwitchChannel', currentTwitchChannelName);
                         }
+                        if (window.currentTwitchRoomId && typeof startAdTracker === 'function') {
+                            startAdTracker();
+                        }
                     } else {
                         window.authorizedTwitchUser = null;
                         $('#twitchUsername').text('');
@@ -809,7 +812,7 @@ $(document).ready(() => {
             }
             
             // Start ad tracking
-            if (typeof startTwitchAdTracking === 'function') startTwitchAdTracking(data.channelName);
+            if (typeof startAdTracker === 'function') startAdTracker();
         });
         
         window.fetchTwitchBadges = function(roomId) {
@@ -1216,13 +1219,23 @@ let lastAdState = 'none';
             const res = await fetch(`/api/twitch/ads?broadcasterId=${window.currentTwitchRoomId}`);
             const data = await res.json();
             
-            if (!res.ok || data.error) {
-                $('#twitchAdTracker').hide();
-                if (data.unauthenticated || res.status === 401 || res.status === 403 || res.status === 400) {
+            if (!res.ok || data.error || data.unauthenticated) {
+                if (data.error && typeof data.error === 'string' && data.error.includes('must match the user ID')) {
+                    // Twitch API constraint: Ad schedule Helix API only permits checking your own channel's ads
+                    $('#twitchAdTracker').hide();
                     if (adCheckInterval) {
                         clearInterval(adCheckInterval);
                         adCheckInterval = null;
                     }
+                } else if (data.unauthenticated || res.status === 401 || res.status === 403) {
+                    $('#twitchAdTracker').css('background', 'rgba(255, 170, 0, 0.2)').css('color', '#ffaa00').show();
+                    $('#twitchAdStatus').html('Ads: <a href="#" onclick="authorizeTwitch(); return false;" style="color:#ffaa00; font-weight: bold; text-decoration:underline;">Authorize Twitch</a>');
+                    if (adCheckInterval) {
+                        clearInterval(adCheckInterval);
+                        adCheckInterval = null;
+                    }
+                } else {
+                    $('#twitchAdTracker').hide();
                 }
                 return;
             }
