@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Combined Chat Reader</title>
 
     <meta name="description" content="A chat reader for TikTok LIVE utilizing TikTok-Live-Connector and Socket.IO to forward the data to the client. This demo project uses the unofficial TikTok API to retrieve chat comments, gifts and other events from TikTok LIVE.">
@@ -585,7 +585,7 @@ function copyOverlayUrl() {
     <div id="bannedUsersBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998;" onclick="$('#bannedUsersModal').hide(); $('#bannedUsersBackdrop').hide();"></div>
 
     <!-- Channel Actions Modal -->
-    <div id="channelActionsModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1c2e; border: 1px solid #9146FF; border-radius: 14px; padding: 22px; min-width: 380px; z-index: 9999; box-shadow: 0 8px 40px rgba(0,0,0,0.7);">
+    <div id="channelActionsModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1c2e; border: 1px solid #9146FF; border-radius: 14px; padding: 20px; width: 92vw; max-width: 440px; max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch; z-index: 9999; box-shadow: 0 8px 40px rgba(0,0,0,0.7); box-sizing: border-box;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h3 style="margin: 0; color: #e3e5eb; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">🎬 Channel Actions</h3>
             <button onclick="$('#channelActionsModal').hide(); $('#channelActionsBackdrop').hide();" style="background: none; border: none; color: #aaa; font-size: 1.4em; cursor: pointer; line-height: 1;">×</button>
@@ -603,12 +603,12 @@ function copyOverlayUrl() {
             </div>
 
             <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px;">STREAM TITLE</label>
-            <textarea id="streamTitleInput" disabled style="width: 100%; box-sizing: border-box; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; margin-bottom: 15px; resize: vertical; min-height: 60px; opacity: 0.5;" placeholder="Loading stream info..."></textarea>
+            <textarea id="streamTitleInput" disabled style="width: 100%; box-sizing: border-box; background: #0e0e14; border: 1px solid #444; color: white; padding: 10px; border-radius: 4px; margin-bottom: 15px; resize: vertical; min-height: 65px; opacity: 0.5; font-size: 16px;" placeholder="Loading stream info..."></textarea>
             
             <div id="categoryContainer">
                 <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px;">CATEGORY / GAME</label>
                 <div style="position: relative; margin-bottom: 15px;">
-                    <input type="text" id="streamGameInput" disabled style="width: 100%; box-sizing: border-box; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; opacity: 0.5;" placeholder="Loading stream info..." autocomplete="off">
+                    <input type="text" id="streamGameInput" disabled style="width: 100%; box-sizing: border-box; background: #0e0e14; border: 1px solid #444; color: white; padding: 10px; border-radius: 4px; opacity: 0.5; font-size: 16px;" placeholder="Loading stream info..." autocomplete="off">
                     <input type="hidden" id="streamGameIdInput">
                     <div id="gameSearchResults" class="custom-scrollbar" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; max-height: 200px; overflow-y: auto; background: #1f1f23; border: 1px solid #444; border-top: none; z-index: 10000;"></div>
                 </div>
@@ -620,7 +620,7 @@ function copyOverlayUrl() {
         <div id="sectionRaid" style="display: none;">
             <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px;">CHANNEL TO RAID</label>
             <div style="position: relative; margin-bottom: 15px;">
-                <input type="text" id="raidChannelInput" style="width: 100%; box-sizing: border-box; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px;" placeholder="Username (e.g. ninja)" autocomplete="off">
+                <input type="text" id="raidChannelInput" style="width: 100%; box-sizing: border-box; background: #0e0e14; border: 1px solid #444; color: white; padding: 10px; border-radius: 4px; font-size: 16px;" placeholder="Username (e.g. ninja)" autocomplete="off">
                 <div id="raidSearchResults" class="custom-scrollbar" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; max-height: 200px; overflow-y: auto; background: #1f1f23; border: 1px solid #444; border-top: none; z-index: 10000;"></div>
             </div>
             
