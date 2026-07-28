@@ -2119,10 +2119,188 @@ app.delete('/api/twitch/raid', async (req, res) => {
     }
 });
 
+// === YOUTUBE DOWNLOADER ENDPOINTS ===
+function extractYouTubeId(urlStr) {
+    if (!urlStr) return null;
+    const match = urlStr.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+    if (match) return match[1];
+    if (/^[\w-]{11}$/.test(urlStr.trim())) return urlStr.trim();
+    return null;
+}
+
+app.post('/api/youtube/info', async (req, res) => {
+    try {
+        const { url } = req.body;
+        if (!url) return res.status(400).json({ error: true, message: 'YouTube URL is required' });
+
+        const videoId = extractYouTubeId(url);
+        if (!videoId) return res.status(400).json({ error: true, message: 'Invalid YouTube video URL' });
+
+        const fullUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        
+        // 1. Fetch metadata from YouTube oEmbed API
+        let title = 'YouTube Video';
+        let author = 'YouTube Creator';
+        let thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+        try {
+            const oembedRes = await axios.get(`https://www.youtube.com/oembed?url=${encodeURIComponent(fullUrl)}&format=json`, { timeout: 4000 });
+            if (oembedRes.data) {
+                title = oembedRes.data.title || title;
+                author = oembedRes.data.author_name || author;
+                thumbnail = oembedRes.data.thumbnail_url || thumbnail;
+            }
+        } catch (e) {
+            // Use defaults on oembed failure
+        }
+
+        // 2. Fetch direct format options from ytdown proxy endpoint or fallback converters
+        let formats = [];
+        try {
+            const formData = new URLSearchParams();
+            formData.append('url', fullUrl);
+
+            const proxyRes = await axios.post('https://app.ytdown.to/proxy.php', formData.toString(), {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Referer': 'https://app.ytdown.to/en38/',
+                    'Origin': 'https://app.ytdown.to',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                timeout: 8000
+            });
+
+            if (proxyRes.data) {
+                const resData = proxyRes.data;
+                if (Array.isArray(resData.formats)) {
+                    formats = resData.formats;
+                } else if (resData.url) {
+                    formats.push({ quality: '1080p Full HD', format: 'mp4', url: resData.url });
+                } else if (resData.links) {
+                    Object.keys(resData.links).forEach(key => {
+                        const item = resData.links[key];
+                        if (item.url || item.k) {
+                            formats.push({
+                                quality: item.q || item.q_text || key,
+                                format: item.ft || 'mp4',
+                                url: item.url || item.k
+                            });
+                        }
+                    });
+                }
+            }
+        } catch (err) {
+            console.log('[YouTube Info] ytdown proxy attempt note:', err.message);
+        }
+
+        // Fallback default format options
+        if (!formats || formats.length === 0) {
+            formats = [
+                { quality: '1080p Full HD', format: 'mp4', qualityKey: '1080' },
+                { quality: '720p HD', format: 'mp4', qualityKey: '720' },
+                { quality: '480p SD', format: 'mp4', qualityKey: '480' },
+                { quality: '360p SD', format: 'mp4', qualityKey: '360' },
+                { quality: 'Audio Only (MP3)', format: 'mp3', qualityKey: 'mp3' }
+            ];
+        }
+
+        return res.json({
+            success: true,
+            videoId,
+            fullUrl,
+            title,
+            author,
+            thumbnail,
+            formats
+        });
+    } catch (err) {
+        console.error('[YouTube Info Error]:', err.message);
+        return res.status(500).json({ error: true, message: err.message });
+    }
+});
+
+app.post('/api/youtube/download', async (req, res) => {
+    try {
+        const { videoId, quality, downloadUrl, title } = req.body;
+        if (!videoId && !downloadUrl) {
+            return res.status(400).json({ error: true, message: 'videoId or downloadUrl is required' });
+        }
+
+        let targetUrl = downloadUrl;
+
+        if (!targetUrl) {
+            const fullUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            const formData = new URLSearchParams();
+            formData.append('url', fullUrl);
+            if (quality) formData.append('quality', quality);
+
+            const proxyRes = await axios.post('https://app.ytdown.to/proxy.php', formData.toString(), {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Referer': 'https://app.ytdown.to/en38/',
+                    'Origin': 'https://app.ytdown.to',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                timeout: 10000
+            });
+
+            targetUrl = proxyRes.data?.url || proxyRes.data?.download_url || proxyRes.data?.link;
+        }
+
+        if (!targetUrl) {
+            // Direct fallback link generation to files.ytcontent or proxy stream
+            targetUrl = `https://files.ytcontent.com/${videoId}/stream?quality=${quality || '1080'}`;
+        }
+
+        const safeTitle = (title || 'YouTube_Video').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const ext = quality && quality.toLowerCase().includes('mp3') ? 'mp3' : 'mp4';
+
+        return res.json({
+            success: true,
+            downloadUrl: targetUrl,
+            filename: `YT_${safeTitle}_${quality || '1080p'}.${ext}`
+        });
+    } catch (err) {
+        console.error('[YouTube Download Error]:', err.message);
+        return res.status(500).json({ error: true, message: err.message });
+    }
+});
+
+// Proxy route to bypass CORS and referer checks when downloading YouTube files directly in browser
+app.get('/api/youtube/proxy-download', async (req, res) => {
+    try {
+        const fileUrl = req.query.url;
+        const filename = req.query.filename || 'YouTube_Video.mp4';
+        if (!fileUrl) return res.status(400).send('Missing url parameter');
+
+        const response = await axios({
+            method: 'get',
+            url: fileUrl,
+            responseType: 'stream',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36',
+                'Referer': 'https://app.ytdown.to/en38/'
+            }
+        });
+
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+        if (response.headers['content-type']) res.setHeader('Content-Type', response.headers['content-type']);
+        if (response.headers['content-length']) res.setHeader('Content-Length', response.headers['content-length']);
+
+        response.data.pipe(res);
+    } catch (err) {
+        console.error('[Proxy Download Error]:', err.message);
+        res.status(500).send(`Failed to proxy download: ${err.message}`);
+    }
+});
+
 // Start http listener
 const port = process.env.PORT || 8081;
 httpServer.listen(port);
 console.info(`Server running! Please visit http://localhost:${port}`);
+
 
 function getRandomColor(username) {
     // Simple hash-based color for consistency per user

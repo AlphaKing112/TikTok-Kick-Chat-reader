@@ -3615,3 +3615,124 @@ if (window.connection && window.connection.socket) {
     window.connection.socket.on('pollUpdate', renderModalPollResults);
     window.connection.socket.on('pollEnd', renderModalPollResults);
 }
+
+// === YOUTUBE DOWNLOADER FRONTEND FUNCTIONS ===
+window.ytCurrentData = null;
+
+async function fetchYouTubeInfo() {
+    const urlInput = $('#ytUrlInput').val().trim();
+    const statusBox = $('#ytStatusBox');
+    const previewCard = $('#ytPreviewCard');
+    const fetchBtn = $('#ytFetchBtn');
+
+    if (!urlInput) {
+        statusBox.css({ display: 'block', background: '#3a1818', color: '#ff6b6b' }).html('⚠️ Please enter a YouTube video URL.');
+        return;
+    }
+
+    statusBox.css({ display: 'block', background: '#1c2438', color: '#58a6ff' }).html('⏳ Fetching video information & available download links...');
+    previewCard.hide();
+    fetchBtn.prop('disabled', true).css('opacity', '0.6');
+
+    try {
+        const response = await fetch('/api/youtube/info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: urlInput })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+            throw new Error(data.message || 'Failed to fetch video information');
+        }
+
+        window.ytCurrentData = data;
+
+        // Populate card
+        $('#ytThumbnail').attr('src', data.thumbnail);
+        $('#ytTitle').text(data.title);
+        $('#ytAuthor').text(`By: ${data.author}`);
+
+        // Populate format select
+        const select = $('#ytFormatSelect');
+        select.empty();
+
+        if (Array.isArray(data.formats) && data.formats.length > 0) {
+            data.formats.forEach((fmt, index) => {
+                const label = fmt.quality ? `${fmt.quality} (${(fmt.format || 'mp4').toUpperCase()})` : `Format ${index + 1}`;
+                select.append($('<option>', {
+                    value: JSON.stringify(fmt),
+                    text: label
+                }));
+            });
+        }
+
+        statusBox.hide();
+        previewCard.show();
+    } catch (err) {
+        statusBox.css({ display: 'block', background: '#3a1818', color: '#ff6b6b' }).html(`❌ Error: ${err.message}`);
+    } finally {
+        fetchBtn.prop('disabled', false).css('opacity', '1');
+    }
+}
+
+async function downloadYouTubeVideo() {
+    if (!window.ytCurrentData) return;
+
+    const downloadBtn = $('#ytDownloadBtn');
+    const statusBox = $('#ytStatusBox');
+    const selectedFormatVal = $('#ytFormatSelect').val();
+
+    if (!selectedFormatVal) {
+        alert('Please select a video format option.');
+        return;
+    }
+
+    let selectedFormat = {};
+    try {
+        selectedFormat = JSON.parse(selectedFormatVal);
+    } catch (e) {
+        selectedFormat = { quality: selectedFormatVal };
+    }
+
+    downloadBtn.prop('disabled', true).html('⏳ Generating Link...');
+    statusBox.css({ display: 'block', background: '#1c2438', color: '#58a6ff' }).html('⏳ Preparing download stream...');
+
+    try {
+        const response = await fetch('/api/youtube/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                videoId: window.ytCurrentData.videoId,
+                title: window.ytCurrentData.title,
+                quality: selectedFormat.qualityKey || selectedFormat.quality,
+                downloadUrl: selectedFormat.url
+            })
+        });
+
+        const resData = await response.json();
+
+        if (!response.ok || resData.error || !resData.downloadUrl) {
+            throw new Error(resData.message || 'Could not generate direct download link.');
+        }
+
+        statusBox.css({ display: 'block', background: '#183820', color: '#53fc18' }).html('✅ Download starting! Check your browser downloads.');
+
+        // Trigger browser file download via proxy link to prevent CORS / cross-site header blocks
+        const proxyDownloadUrl = `/api/youtube/proxy-download?url=${encodeURIComponent(resData.downloadUrl)}&filename=${encodeURIComponent(resData.filename)}`;
+        
+        const a = document.createElement('a');
+        a.href = proxyDownloadUrl;
+        a.download = resData.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+    } catch (err) {
+        statusBox.css({ display: 'block', background: '#3a1818', color: '#ff6b6b' }).html(`❌ Download Error: ${err.message}`);
+    } finally {
+        downloadBtn.prop('disabled', false).html('⬇️ Download File');
+    }
+}
+
