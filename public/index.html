@@ -389,7 +389,10 @@
                         <button id="toggleEmotePickerBtn" onclick="toggleEmotePicker()" style="background: transparent; color: #aaa; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: color 0.2s;">😊</button>
                         <button id="showBannedUsersBtn" onclick="showBannedUsersModal()" title="Moderation: View banned/timed out users" style="background: transparent; color: #9146FF; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#bf7fff'" onmouseout="this.style.color='#9146FF'">🛡️</button>
                         <button id="showChannelActionsBtn" onclick="showChannelActionsModal()" title="Channel Actions: Edit Stream Info & Raid" style="background: transparent; color: #9146FF; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#bf7fff'" onmouseout="this.style.color='#9146FF'">🎬</button>
-                        <button id="showPollBtn" onclick="openPollModal()" title="Stream Poll: Create & Manage Polls" style="background: transparent; color: #ffaa00; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.25)'" onmouseout="this.style.transform='scale(1)'">📊</button>
+                        <div style="display: inline-flex; align-items: center; position: relative;">
+                            <button id="showPollBtn" onclick="openPollModal()" title="Stream Poll: Create & Manage Polls" style="background: transparent; color: #ffaa00; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.25)'" onmouseout="this.style.transform='scale(1)'">📊</button>
+                            <span id="activePollTicker" onclick="openPollModal()" style="display: none; background: #ffaa00; color: #000; font-weight: bold; font-size: 0.7em; padding: 2px 6px; border-radius: 10px; cursor: pointer; margin-left: 2px; vertical-align: middle; font-family: monospace;" title="Active Poll Timer - Click to view">⏱️ <span id="activePollTickerText">00:00</span></span>
+                        </div>
                         <button id="sendChatBtn" onclick="sendTwitchChat()" style="background: #9146FF; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">Send</button>
                     </div>
                     <!-- Emote Picker Window -->
@@ -677,8 +680,11 @@ function copyOverlayUrl() {
 
         <!-- Live Results Box inside Poll Modal -->
         <div id="modalLivePollResults" style="display: none; margin-bottom: 12px; background: #0e0e14; border: 1px solid #333; border-radius: 8px; padding: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span id="modalPollBadge" style="background: #53fc18; color: #000; font-weight: 800; font-size: 0.7em; padding: 2px 8px; border-radius: 12px; text-transform: uppercase;">LIVE RESULTS</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="modalPollBadge" style="background: #53fc18; color: #000; font-weight: 800; font-size: 0.7em; padding: 2px 8px; border-radius: 12px; text-transform: uppercase;">LIVE RESULTS</span>
+                    <span id="modalPollTimer" style="color: #ffaa00; font-size: 0.85em; font-weight: bold; display: inline-flex; align-items: center; gap: 3px;">⏱️ <span id="modalPollTimerText">00:00</span></span>
+                </div>
                 <span id="modalPollTotalVotes" style="color: #aaa; font-size: 0.8em; font-weight: bold;">0 Votes</span>
             </div>
             <div id="modalPollTitleDisplay" style="color: #fff; font-weight: bold; font-size: 0.9em; margin-bottom: 8px;"></div>

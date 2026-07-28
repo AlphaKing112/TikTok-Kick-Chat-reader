@@ -3518,13 +3518,62 @@ window.copyPollOverlayUrl = function() {
     });
 };
 
+let modalPollTimerInterval = null;
+
+function startModalPollTimer(endTime, isEnded) {
+    if (modalPollTimerInterval) clearInterval(modalPollTimerInterval);
+
+    const updateTimerUI = (timeStr, isOver) => {
+        $('#modalPollTimerText').text(timeStr);
+        if ($('#activePollTickerText').length) {
+            $('#activePollTickerText').text(timeStr);
+            if (isOver) {
+                $('#activePollTicker').css({ background: '#ff5555', color: '#fff' });
+            } else {
+                $('#activePollTicker').css({ background: '#ffaa00', color: '#000' });
+            }
+        }
+    };
+
+    if (isEnded) {
+        updateTimerUI('ENDED', true);
+        return;
+    }
+
+    if (!endTime) {
+        updateTimerUI('NO LIMIT', false);
+        return;
+    }
+
+    const updateTimer = () => {
+        const now = Date.now();
+        const remainingSec = Math.max(0, Math.ceil((endTime - now) / 1000));
+        
+        const mins = Math.floor(remainingSec / 60).toString().padStart(2, '0');
+        const secs = (remainingSec % 60).toString().padStart(2, '0');
+        const formatted = `${mins}:${secs}`;
+
+        updateTimerUI(formatted, remainingSec <= 0);
+
+        if (remainingSec <= 0) {
+            clearInterval(modalPollTimerInterval);
+        }
+    };
+
+    updateTimer();
+    modalPollTimerInterval = setInterval(updateTimer, 1000);
+}
+
 function renderModalPollResults(poll) {
     if (!poll || !poll.active) {
+        if (modalPollTimerInterval) clearInterval(modalPollTimerInterval);
         $('#modalLivePollResults').hide();
+        $('#activePollTicker').hide();
         return;
     }
 
     $('#modalLivePollResults').show();
+    $('#activePollTicker').show();
     $('#modalPollTitleDisplay').text(poll.title);
     $('#modalPollTotalVotes').text(`${poll.totalVotes} Vote${poll.totalVotes === 1 ? '' : 's'}`);
 
@@ -3533,6 +3582,8 @@ function renderModalPollResults(poll) {
     } else {
         $('#modalPollBadge').text('LIVE RESULTS').css({ background: '#53fc18', color: '#000' });
     }
+
+    startModalPollTimer(poll.endTime, poll.ended);
 
     const list = $('#modalPollList');
     list.empty();
