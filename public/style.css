@@ -119,10 +119,10 @@ a:hover {
 }
 
 .miniprofilepicture {
-    height: 32px;
-    width: 32px;
+    height: 22px;
+    width: 22px;
     border-radius: 50%;
-    margin-right: 8px;
+    margin-right: 6px;
     border: 2px solid #58a6ff;
     box-shadow: 0 2px 8px #0006;
     object-fit: cover;
@@ -250,14 +250,14 @@ input[type="button"]:hover {
         padding: 6px 4px;
     }
     .miniprofilepicture {
-        height: 24px;
-        width: 24px;
+        height: 18px;
+        width: 18px;
         margin-right: 4px;
     }
     .chatcontainer .kick-message .miniprofilepicture {
-        height: 26px;
-        width: 26px;
-        margin-right: 6px;
+        height: 18px;
+        width: 18px;
+        margin-right: 4px;
     }
     input[type="text"] {
         font-size: 1em;
@@ -297,14 +297,14 @@ input[type="button"]:hover {
         padding: 4px 2px;
     }
     .miniprofilepicture {
-        height: 20px;
-        width: 20px;
+        height: 16px;
+        width: 16px;
         margin-right: 3px;
     }
     .chatcontainer .kick-message .miniprofilepicture {
-        height: 22px;
-        width: 22px;
-        margin-right: 4px;
+        height: 16px;
+        width: 16px;
+        margin-right: 3px;
     }
     input[type="text"] {
         font-size: 0.95em;
@@ -364,10 +364,10 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 }
 
 .twitch-message .platform-icon {
-    width: 26px !important;
-    height: 26px !important;
+    width: 16px !important;
+    height: 16px !important;
     vertical-align: middle;
-    margin-right: 6px;
+    margin-right: 4px;
 }
 
 /* Kick Gifted Sub Styles */
@@ -580,10 +580,10 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 
 /* Desktop (default) */
 .chatcontainer .kick-message .miniprofilepicture {
-    width: 32px;
-    height: 32px;
+    width: 22px;
+    height: 22px;
     border: 2px solid #4cff7a !important;
-    margin-right: 8px;
+    margin-right: 6px;
     margin-left: 0;
     border-radius: 50%;
     object-fit: contain;
@@ -598,16 +598,16 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 
 @media (max-width: 600px) {
     .chatcontainer .kick-message .miniprofilepicture {
-        height: 24px;
-        width: 24px;
+        height: 18px;
+        width: 18px;
         margin-right: 4px;
     }
 }
 
 @media (max-width: 400px) {
     .chatcontainer .kick-message .miniprofilepicture {
-        height: 20px;
-        width: 20px;
+        height: 16px;
+        width: 16px;
         margin-right: 3px;
     }
 }
@@ -620,10 +620,10 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 
 .chatcontainer .tiktok-message .miniprofilepicture {
     border-radius: 50%;
-    width: 32px;
-    height: 32px;
+    width: 22px;
+    height: 22px;
     object-fit: cover;
-    margin-right: 8px;
+    margin-right: 6px;
     border: none !important; /* Remove blue border for TikTok */
 }
 

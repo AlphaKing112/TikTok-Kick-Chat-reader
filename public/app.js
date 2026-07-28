@@ -1073,7 +1073,7 @@ $(document).ready(() => {
             
             // rawUsername is already declared above
             const twitchMessage = `<div class="twitch-message twitch-user-${data.tags['user-id']} twitch-username-${rawUsername.toLowerCase()}" id="twitch-msg-${data.tags.id}">
-                <svg class="platform-icon" style="width:26px;height:26px;vertical-align:middle;margin-right:6px;filter:drop-shadow(1px 1px 2px rgba(0,0,0,0.8));" viewBox="0 0 512 512"><path fill="#9146FF" d="M391.2 103.5H352.5v109.7h38.6zM285 103H246.4V212.8H285zM120.8 0 24.3 91.4V420.6H140.1V512l96.5-91.4h77.3L487.7 256V0zM449.1 237.8l-77.2 73-15.1 14.3-30 14.3-58 14.3H236.6l-77.3 73.1v-73.1H91.9V36.6h357.2z"/></svg>
+                <svg class="platform-icon" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.8));" viewBox="0 0 512 512"><path fill="#9146FF" d="M391.2 103.5H352.5v109.7h38.6zM285 103H246.4V212.8H285zM120.8 0 24.3 91.4V420.6H140.1V512l96.5-91.4h77.3L487.7 256V0zM449.1 237.8l-77.2 73-15.1 14.3-30 14.3-58 14.3H236.6l-77.3 73.1v-73.1H91.9V36.6h357.2z"/></svg>
                 ${profilePicHtml}
                 ${badgeHtml}<b style="color: ${color}; cursor: pointer;" onclick="showTwitchContextMenu(event, '${data.tags['user-id']}', '${data.tags['room-id']}', '${data.tags.id}', '${safeDisplayName}', ${!!(data.tags.badges && data.tags.badges.vip)}, '${(data.tags['badge-info'] && data.tags['badge-info'].subscriber) ? data.tags['badge-info'].subscriber : ''}', '${data.profilePic || ''}')">${sanitize(displayName)}:</b>
                 <span>${parsedMessage}</span>
