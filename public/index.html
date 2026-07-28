@@ -626,7 +626,7 @@ function copyOverlayUrl() {
         </div>
     </div>
     <!-- Poll Creation Modal -->
-    <div id="pollModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1c2e; border: 1px solid #ffaa00; border-radius: 14px; padding: 22px; width: 420px; z-index: 9999; box-shadow: 0 8px 40px rgba(0,0,0,0.8);">
+    <div id="pollModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1c2e; border: 1px solid #ffaa00; border-radius: 14px; padding: 20px; width: 92vw; max-width: 440px; max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch; z-index: 9999; box-shadow: 0 8px 40px rgba(0,0,0,0.8); box-sizing: border-box;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h3 style="margin: 0; color: #ffaa00; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">📊 Create Stream Poll</h3>
             <button onclick="$('#pollModal').hide(); $('#pollModalBackdrop').hide();" style="background: none; border: none; color: #aaa; font-size: 1.4em; cursor: pointer;">×</button>
@@ -687,7 +687,7 @@ function copyOverlayUrl() {
 
         <button onclick="copyPollOverlayUrl()" style="width: 100%; background: #2a2d3e; color: #58a6ff; border: 1px solid #444; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85em;">📋 Copy Poll Overlay URL for OBS</button>
     </div>
-    <div id="pollModalBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9998;" onclick="$('#pollModal').hide(); $('#pollModalBackdrop').hide();"></div>
+    <div id="pollModalBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 9998;" onclick="$('#pollModal').hide(); $('#pollModalBackdrop').hide();"></div>
 
 </body>
 </html>

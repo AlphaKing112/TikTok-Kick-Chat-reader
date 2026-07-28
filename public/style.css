@@ -948,3 +948,38 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 .game-search-item:last-child {
     border-bottom: none;
 }
+
+/* Poll Modal Mobile & iPhone Responsiveness */
+#pollModal::-webkit-scrollbar {
+    width: 6px;
+}
+#pollModal::-webkit-scrollbar-track {
+    background: #121320;
+    border-radius: 4px;
+}
+#pollModal::-webkit-scrollbar-thumb {
+    background: #ffaa0066;
+    border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+    #pollModal {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        max-height: 88vh !important;
+        padding: 16px !important;
+        border-radius: 12px !important;
+    }
+    #pollModal input[type="text"],
+    #pollModal select {
+        font-size: 16px !important; /* Prevents iOS Safari auto-zoom on input focus */
+        padding: 10px 8px !important;
+    }
+    #pollModal button {
+        min-height: 42px; /* Apple iOS touch target guideline */
+    }
+    .poll-option-row {
+        gap: 6px !important;
+    }
+}
+

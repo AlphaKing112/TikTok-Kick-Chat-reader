@@ -3479,8 +3479,6 @@ window.startPollSubmit = function() {
     if (window.connection && window.connection.socket) {
         window.connection.socket.emit('createPoll', { title, options, duration, targetPlatform });
         showNotification('🚀 Poll started successfully!', 'success');
-        $('#pollModal').hide();
-        $('#pollModalBackdrop').hide();
     } else {
         showNotification('Socket connection not ready!', 'error');
     }
@@ -3490,8 +3488,6 @@ window.endPollSubmit = function() {
     if (window.connection && window.connection.socket) {
         window.connection.socket.emit('endPoll');
         showNotification('🛑 Poll ended!', 'info');
-        $('#pollModal').hide();
-        $('#pollModalBackdrop').hide();
     }
 };
 
