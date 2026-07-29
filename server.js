@@ -139,6 +139,34 @@ app.use(express.static('public', {
 }));
 app.use(express.json());
 
+function rewriteJsCode(code, baseUrl, localProxyPrefix) {
+    if (typeof code !== 'string') return code;
+    
+    // 1. Rewrite dynamic imports: import("...") or import('...')
+    code = code.replace(/import\s*\(\s*(['"])([^'"]+)\1\s*\)/g, (match, quote, path) => {
+        try {
+            if (path.startsWith('data:') || path.startsWith('blob:')) return match;
+            const absUrl = new URL(path, baseUrl).href;
+            return `import(${quote}${localProxyPrefix}${encodeURIComponent(absUrl)}${quote})`;
+        } catch (e) {
+            return match;
+        }
+    });
+
+    // 2. Rewrite static import/export statements: import ... from "..." or export ... from "..."
+    code = code.replace(/(from|import)\s+(['"])([^'"]+)\2/g, (match, keyword, quote, path) => {
+        try {
+            if (path.startsWith('data:') || path.startsWith('blob:')) return match;
+            const absUrl = new URL(path, baseUrl).href;
+            return `${keyword} ${quote}${localProxyPrefix}${encodeURIComponent(absUrl)}${quote}`;
+        } catch (e) {
+            return match;
+        }
+    });
+
+    return code;
+}
+
 // === Universal Un-Framing Proxy ===
 const handleUnframeProxy = async (req, res) => {
     try {
@@ -192,6 +220,14 @@ const handleUnframeProxy = async (req, res) => {
                         $(el).attr('src', localProxyPrefix + encodeURIComponent(absUrl));
                         $(el).removeAttr('crossorigin');
                     } catch (e) {}
+                }
+            });
+
+            // Rewrite inline <script> contents (dynamic and static imports)
+            $('script').each((_, el) => {
+                const scriptContent = $(el).html();
+                if (scriptContent && scriptContent.trim()) {
+                    $(el).html(rewriteJsCode(scriptContent, targetUrl, localProxyPrefix));
                 }
             });
 
@@ -254,8 +290,9 @@ app.get('/api/proxy-asset', async (req, res) => {
 
         let contentType = response.headers['content-type'] || '';
         const cleanUrl = assetUrl.split('?')[0].toLowerCase();
+        const isJs = cleanUrl.endsWith('.js') || cleanUrl.endsWith('.mjs') || contentType.includes('javascript');
         if (cleanUrl.endsWith('.css')) contentType = 'text/css; charset=utf-8';
-        else if (cleanUrl.endsWith('.js') || cleanUrl.endsWith('.mjs')) contentType = 'application/javascript; charset=utf-8';
+        else if (isJs) contentType = 'application/javascript; charset=utf-8';
         else if (cleanUrl.endsWith('.svg')) contentType = 'image/svg+xml';
         else if (cleanUrl.endsWith('.png')) contentType = 'image/png';
         else if (cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) contentType = 'image/jpeg';
@@ -266,7 +303,17 @@ app.get('/api/proxy-asset', async (req, res) => {
         res.setHeader('Content-Type', contentType);
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        res.send(Buffer.from(response.data));
+
+        let data = response.data;
+        if (isJs) {
+            const protocol = (req.headers['x-forwarded-proto'] || req.protocol).split(',')[0].trim();
+            const localProxyPrefix = `${protocol}://${req.get('host')}/api/proxy-asset?url=`;
+            const code = Buffer.from(data).toString('utf8');
+            const rewritten = rewriteJsCode(code, assetUrl, localProxyPrefix);
+            return res.send(Buffer.from(rewritten, 'utf8'));
+        }
+
+        res.send(Buffer.from(data));
     } catch (e) {
         res.status(404).send('Asset Proxy Error');
     }
