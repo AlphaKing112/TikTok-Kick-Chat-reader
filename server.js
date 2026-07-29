@@ -116,6 +116,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 const app = express();
+app.set('trust proxy', true);
 const httpServer = createServer(app);
 
 // Enable cross origin resource sharing
@@ -156,15 +157,16 @@ app.get('/api/streamelements-proxy', async (req, res) => {
         let html = response.data;
         if (typeof html === 'string') {
             const origin = new URL(targetUrl).origin;
-            const localProxyPrefix = `${req.protocol}://${req.get('host')}/api/proxy-asset?url=`;
+            const protocol = (req.headers['x-forwarded-proto'] || req.protocol).split(',')[0].trim();
+            const localProxyPrefix = `${protocol}://${req.get('host')}/api/proxy-asset?url=`;
             
             // Rewrite asset URLs to point explicitly to local server /api/proxy-asset endpoint
-            html = html.replace(/src="https:\/\/streamelements\.com\//g, `src="${localProxyPrefix}https://streamelements.com/`);
-            html = html.replace(/href="https:\/\/streamelements\.com\//g, `href="${localProxyPrefix}https://streamelements.com/`);
-            html = html.replace(/src="\.\/assets\//g, `src="${localProxyPrefix}https://streamelements.com/assets/`);
-            html = html.replace(/href="\.\/assets\//g, `href="${localProxyPrefix}https://streamelements.com/assets/`);
-            html = html.replace(/src="\/assets\//g, `src="${localProxyPrefix}https://streamelements.com/assets/`);
-            html = html.replace(/href="\/assets\//g, `href="${localProxyPrefix}https://streamelements.com/assets/`);
+            html = html.replace(/(src|href)="https:\/\/streamelements\.com\//g, `$1="${localProxyPrefix}https://streamelements.com/`);
+            html = html.replace(/(src|href)='https:\/\/streamelements\.com\//g, `$1='${localProxyPrefix}https://streamelements.com/`);
+            html = html.replace(/(src|href)="\.\/assets\//g, `$1="${localProxyPrefix}https://streamelements.com/assets/`);
+            html = html.replace(/(src|href)='\.\/assets\//g, `$1='${localProxyPrefix}https://streamelements.com/assets/`);
+            html = html.replace(/(src|href)="\/assets\//g, `$1="${localProxyPrefix}https://streamelements.com/assets/`);
+            html = html.replace(/(src|href)='\/assets\//g, `$1='${localProxyPrefix}https://streamelements.com/assets/`);
 
             const baseTag = `<base href="${origin}/">`;
             if (/<head[^>]*>/i.test(html)) {
