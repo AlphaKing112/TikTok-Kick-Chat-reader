@@ -1,3 +1,6 @@
+html {
+    height: 100%;
+}
 body {
     font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
     min-width: 320px;
@@ -5,6 +8,8 @@ body {
     color: #e3e5eb;
     margin: 0;
     padding: 0;
+    height: 100%;
+    overflow: hidden;
 }
 
 h1 {
@@ -1087,11 +1092,15 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x pan-y;
-    scrollbar-width: none; /* Hide scrollbar for clean app feel on mobile */
+    scrollbar-width: none;
     user-select: none;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
+    height: 45px;
     z-index: 900;
+    box-sizing: border-box;
 }
 
 #browserTabBarContainer::-webkit-scrollbar {
@@ -1323,7 +1332,11 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 #mainDashboardView {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 45px);
+    position: absolute;
+    top: 45px;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
     overflow: hidden;
 }
@@ -1338,21 +1351,31 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 
 /* Embedded Web View Layout */
 #customViewsContainer {
+    position: absolute;
+    top: 45px;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
-    height: calc(100vh - 45px);
     display: none;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .custom-tab-container {
     display: none;
     flex-direction: column;
-    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
+    height: 100%;
 }
 
 .custom-tab-container.active {
-    display: flex;
+    display: flex !important;
 }
 
 .custom-web-toolbar {

@@ -3738,50 +3738,50 @@ function switchToPrevTab() {
 function switchToTab(tabId) {
     activeTabId = tabId;
 
-    // Re-render tab headers to update active tab highlight state
-    renderTabs();
-
-    let activeElem = null;
+    // Update tab bar active highlights
+    $('.browser-tab').removeClass('active');
     if (tabId === 'main') {
-        activeElem = document.getElementById('tab-main');
+        $('#tab-main').addClass('active');
     } else {
-        activeElem = document.getElementById(`tab_header_${tabId}`);
+        $(`#tab_header_${tabId}`).addClass('active');
     }
 
-    // Auto-scroll active tab into view smoothly on mobile
+    // Auto-scroll active tab into view
+    const activeElem = document.getElementById(tabId === 'main' ? 'tab-main' : `tab_header_${tabId}`);
     if (activeElem && typeof activeElem.scrollIntoView === 'function') {
         activeElem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
 
     const mainChat = $('#mainChatContainer');
 
-    // Toggle views
     if (tabId === 'main') {
-        $('.custom-tab-container').removeClass('active').hide();
+        // Show main dashboard, hide custom views
         $('#customViewsContainer').hide();
         $('#mainDashboardView').css('display', 'flex');
 
-        // Ensure main chat container is in the main chat dock content container
+        // Move chat back to main dock
         const mainDockContent = $('#mainChatDockContent');
         if (mainDockContent.length && mainChat.length && !$.contains(mainDockContent[0], mainChat[0])) {
             mainDockContent.append(mainChat);
         }
     } else {
+        // Hide main dashboard, show custom views
         $('#mainDashboardView').hide();
-        $('#customViewsContainer').css('display', 'flex');
-        $('.custom-tab-container').removeClass('active').hide();
+        $('#customViewsContainer').show();
 
-        let viewElem = $(`#tab_view_${tabId}`);
-        if (!viewElem.length) {
+        // Ensure the tab view exists - if not, create it
+        if (!$(`#tab_view_${tabId}`).length) {
             renderTabs();
-            viewElem = $(`#tab_view_${tabId}`);
         }
 
+        // Show only the active tab view
+        $('.custom-tab-container').hide().removeClass('active');
+        const viewElem = $(`#tab_view_${tabId}`);
         if (viewElem.length) {
-            viewElem.addClass('active').css('display', 'flex');
+            viewElem.addClass('active').show();
         }
 
-        // Move Chat Reader into the active tab's bottom chat dock content area
+        // Move chat into the active tab's dock
         const dockContent = $(`#chatDockContent_${tabId}`);
         if (dockContent.length && mainChat.length && !$.contains(dockContent[0], mainChat[0])) {
             dockContent.append(mainChat);
@@ -4004,6 +4004,8 @@ function setupMobileTabSwiping() {
 $(document).ready(function() {
     loadSavedCustomTabs();
     renderTabs();
+    // Always start on main tab
+    switchToTab('main');
     setupMobileTabSwiping();
 });
 
