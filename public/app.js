@@ -3752,47 +3752,35 @@ function switchToTab(tabId) {
         activeElem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
 
-    const mainChat = document.getElementById('mainChatContainer');
+    const mainChat = $('#mainChatContainer');
 
     if (tabId === 'main') {
-        // Hide custom views, show main dashboard
-        const cv = document.getElementById('customViewsContainer');
-        cv.style.cssText = 'display: none;';
+        $('.custom-tab-container').removeClass('active').hide();
+        $('#customViewsContainer').hide();
+        $('#mainDashboardView').show();
 
-        const mdv = document.getElementById('mainDashboardView');
-        mdv.style.cssText = 'display: flex; flex-direction: column; position: fixed; top: 45px; left: 0; right: 0; bottom: 0; width: 100%; overflow: hidden; background: #181a20;';
-
-        // Move chat back to main dock
-        const mainDockContent = document.getElementById('mainChatDockContent');
-        if (mainDockContent && mainChat && !mainDockContent.contains(mainChat)) {
-            mainDockContent.appendChild(mainChat);
+        const mainDockContent = $('#mainChatDockContent');
+        if (mainDockContent.length && mainChat.length && !$.contains(mainDockContent[0], mainChat[0])) {
+            mainDockContent.append(mainChat);
         }
     } else {
-        // Hide main dashboard, show custom views container
-        const mdv = document.getElementById('mainDashboardView');
-        mdv.style.cssText = 'display: none;';
+        $('#mainDashboardView').hide();
+        $('#customViewsContainer').show();
+        $('.custom-tab-container').removeClass('active').hide();
 
-        const cv = document.getElementById('customViewsContainer');
-        cv.style.cssText = 'display: flex; flex-direction: column; position: fixed; top: 45px; left: 0; right: 0; bottom: 0; width: 100%; height: calc(100vh - 45px); overflow: hidden; background: #181a20;';
-
-        // Ensure the tab view exists
-        if (!document.getElementById(`tab_view_${tabId}`)) {
+        let viewElem = $(`#tab_view_${tabId}`);
+        if (!viewElem.length) {
             renderTabs();
+            viewElem = $(`#tab_view_${tabId}`);
         }
 
-        // Hide ALL tab views, then show only the active one
-        document.querySelectorAll('.custom-tab-container').forEach(el => {
-            el.style.cssText = 'display: none;';
-        });
-        const viewElem = document.getElementById(`tab_view_${tabId}`);
-        if (viewElem) {
-            viewElem.style.cssText = 'display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden;';
+        if (viewElem.length) {
+            viewElem.addClass('active').show();
         }
 
-        // Move chat into the active tab's dock
-        const dockContent = document.getElementById(`chatDockContent_${tabId}`);
-        if (dockContent && mainChat && !dockContent.contains(mainChat)) {
-            dockContent.appendChild(mainChat);
+        const dockContent = $(`#chatDockContent_${tabId}`);
+        if (dockContent.length && mainChat.length && !$.contains(dockContent[0], mainChat[0])) {
+            dockContent.append(mainChat);
         }
     }
 }
@@ -3889,20 +3877,7 @@ function renderTabs() {
 
                     <!-- Embedded Website Iframe -->
                     <div class="custom-web-frame-wrapper">
-                        <!-- Fallback loading card - shown during load, hidden after -->
-                        <div id="fallback_${tab.id}" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #12141d; color: #8c92a6; padding: 20px; text-align: center; z-index: 2; pointer-events: none;">
-                            <span style="font-size: 2.8em; margin-bottom: 10px;">🌐</span>
-                            <h4 style="margin: 0 0 8px 0; color: #e3e5eb; font-size: 1.1em;">Loading ${escapeHtml(tab.title)}...</h4>
-                            <p style="margin: 0; font-size: 0.85em; max-width: 360px; color: #8a8f9e; line-height: 1.4;">Please wait...</p>
-                        </div>
-                        <iframe id="iframe_${tab.id}" class="custom-web-frame"
-                            style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; border: none;"
-                            src="${escapeHtml(tab.url)}"
-                            allow="autoplay; camera; microphone; clipboard-read; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
-                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-presentation allow-downloads allow-pointer-lock allow-top-navigation-by-user-activation"
-                            loading="lazy"
-                            onload="var fb=document.getElementById('fallback_${tab.id}'); if(fb) fb.style.display='none';">
-                        </iframe>
+                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${escapeHtml(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
                     </div>
 
                     <!-- Bottom Chat Reader Dock -->
