@@ -3755,9 +3755,6 @@ function switchToTab(tabId) {
         const mainCell = $('.splitchattable td').first();
         if (mainCell.length && !$.contains(mainCell[0], $('#mainChatContainer')[0])) {
             mainCell.append($('#mainChatContainer'));
-            if ($('#chatInputContainer').length) {
-                mainCell.append($('#chatInputContainer'));
-            }
         }
     } else {
         $('#mainDashboardView').hide();
@@ -3778,9 +3775,6 @@ function switchToTab(tabId) {
         const dockContent = $(`#chatDockContent_${tabId}`);
         if (dockContent.length && !$.contains(dockContent[0], $('#mainChatContainer')[0])) {
             dockContent.append($('#mainChatContainer'));
-            if ($('#chatInputContainer').length) {
-                dockContent.append($('#chatInputContainer'));
-            }
         }
     }
 }
@@ -3863,9 +3857,6 @@ function renderTabs() {
         const activeDock = $(`#chatDockContent_${activeTabId}`);
         if (activeDock.length) {
             activeDock.append($('#mainChatContainer'));
-            if ($('#chatInputContainer').length) {
-                activeDock.append($('#chatInputContainer'));
-            }
         }
     }
 }

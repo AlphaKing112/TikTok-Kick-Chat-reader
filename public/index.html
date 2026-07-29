@@ -387,34 +387,34 @@
                             <span id="adBannerCountdown" style="background: rgba(0, 0, 0, 0.4); padding: 3px 10px; border-radius: 12px; font-weight: 800; font-size: 0.85em; color: #ffaa00; border: 1px solid rgba(255,255,255,0.15);">0s remaining</span>
                         </div>
                     </div>
-                    <div class="chatcontainer" style="flex: 1; overflow-y: auto; height: auto; margin: 0; border-radius: 0; box-shadow: none; background: transparent;">
+                    <div class="chatcontainer" style="flex: 1; overflow-y: auto; height: auto; margin: 0; border-radius: 0; box-shadow: none; background: transparent; padding-bottom: 12px;">
                     </div>
-                </div>
-                <!-- Chat Input Box -->
-                <div id="chatInputContainer" style="display: none; background: #2a2a2a; padding: 10px; border-top: 1px solid #444; position: relative; flex-direction: column;">
-                    <div id="replyIndicator" style="display: none; font-size: 0.8em; color: #aaa; margin-bottom: 5px;">
-                        Replying to <span id="replyUsername" style="color: #9146FF; font-weight: bold;"></span> 
-                        <span style="cursor: pointer; float: right; color: #ff5555; font-weight: bold;" onclick="cancelReply()">✕</span>
-                    </div>
-                    <div class="chat-input-flex-wrapper">
-                        <input type="text" id="chatInput" placeholder="Send a message to Twitch..." autocomplete="off" onkeypress="handleChatInputKeyPress(event)">
-                        <div class="chat-input-actions">
-                            <button id="toggleEmotePickerBtn" onclick="toggleEmotePicker()" style="background: transparent; color: #aaa; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: color 0.2s;">😊</button>
-                            <button id="showBannedUsersBtn" onclick="showBannedUsersModal()" title="Moderation: View banned/timed out users" style="background: transparent; color: #9146FF; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#bf7fff'" onmouseout="this.style.color='#9146FF'">🛡️</button>
-                            <button id="showChannelActionsBtn" onclick="showChannelActionsModal()" title="Channel Actions: Edit Stream Info & Raid" style="background: transparent; color: #9146FF; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#bf7fff'" onmouseout="this.style.color='#9146FF'">🎬</button>
-                            <div style="display: inline-flex; align-items: center; position: relative;">
-                                <button id="showPollBtn" onclick="openPollModal()" title="Stream Poll: Create & Manage Polls" style="background: transparent; color: #ffaa00; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.25)'" onmouseout="this.style.transform='scale(1)'">📊</button>
-                                <span id="activePollTicker" onclick="openPollModal()" style="display: none; background: #ffaa00; color: #000; font-weight: bold; font-size: 0.7em; padding: 2px 6px; border-radius: 10px; cursor: pointer; margin-left: 2px; vertical-align: middle; font-family: monospace;" title="Active Poll Timer - Click to view">⏱️ <span id="activePollTickerText">00:00</span></span>
-                            </div>
+                    <!-- Chat Input Box -->
+                    <div id="chatInputContainer" style="display: none; background: #2a2a2a; padding: 10px; border-top: 1px solid #444; position: relative; flex-direction: column; flex-shrink: 0;">
+                        <div id="replyIndicator" style="display: none; font-size: 0.8em; color: #aaa; margin-bottom: 5px;">
+                            Replying to <span id="replyUsername" style="color: #9146FF; font-weight: bold;"></span> 
+                            <span style="cursor: pointer; float: right; color: #ff5555; font-weight: bold;" onclick="cancelReply()">✕</span>
                         </div>
-                        <button id="sendChatBtn" onclick="sendTwitchChat()" style="background: #9146FF; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; flex-shrink: 0;">Send</button>
-                    </div>
-                    <!-- Emote Picker Window -->
-                    <div id="emotePicker" class="custom-scrollbar" style="display: none; position: absolute; bottom: calc(100% + 10px); right: 10px; background: #1f1f23; border: 1px solid #444; border-radius: 6px; padding: 10px; width: 300px; max-height: 250px; overflow-y: auto; z-index: 2000; box-shadow: 0 -4px 10px rgba(0,0,0,0.5);">
-                        <h4 style="margin: 0 0 10px 0; color: #efeff1; font-size: 14px; text-align: left;">Channel Emotes</h4>
-                        <div id="channelEmotesGrid" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
-                        <h4 style="margin: 15px 0 10px 0; color: #efeff1; font-size: 14px; text-align: left;">Global Emotes</h4>
-                        <div id="globalEmotesGrid" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                        <div class="chat-input-flex-wrapper">
+                            <input type="text" id="chatInput" placeholder="Send a message to Twitch..." autocomplete="off" onkeypress="handleChatInputKeyPress(event)">
+                            <div class="chat-input-actions">
+                                <button id="toggleEmotePickerBtn" onclick="toggleEmotePicker()" style="background: transparent; color: #aaa; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: color 0.2s;">😊</button>
+                                <button id="showBannedUsersBtn" onclick="showBannedUsersModal()" title="Moderation: View banned/timed out users" style="background: transparent; color: #9146FF; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#bf7fff'" onmouseout="this.style.color='#9146FF'">🛡️</button>
+                                <button id="showChannelActionsBtn" onclick="showChannelActionsModal()" title="Channel Actions: Edit Stream Info & Raid" style="background: transparent; color: #9146FF; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#bf7fff'" onmouseout="this.style.color='#9146FF'">🎬</button>
+                                <div style="display: inline-flex; align-items: center; position: relative;">
+                                    <button id="showPollBtn" onclick="openPollModal()" title="Stream Poll: Create & Manage Polls" style="background: transparent; color: #ffaa00; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.25)'" onmouseout="this.style.transform='scale(1)'">📊</button>
+                                    <span id="activePollTicker" onclick="openPollModal()" style="display: none; background: #ffaa00; color: #000; font-weight: bold; font-size: 0.7em; padding: 2px 6px; border-radius: 10px; cursor: pointer; margin-left: 2px; vertical-align: middle; font-family: monospace;" title="Active Poll Timer - Click to view">⏱️ <span id="activePollTickerText">00:00</span></span>
+                                </div>
+                            </div>
+                            <button id="sendChatBtn" onclick="sendTwitchChat()" style="background: #9146FF; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; flex-shrink: 0;">Send</button>
+                        </div>
+                        <!-- Emote Picker Window -->
+                        <div id="emotePicker" class="custom-scrollbar" style="display: none; position: absolute; bottom: calc(100% + 10px); right: 10px; background: #1f1f23; border: 1px solid #444; border-radius: 6px; padding: 10px; width: 300px; max-height: 250px; overflow-y: auto; z-index: 2000; box-shadow: 0 -4px 10px rgba(0,0,0,0.5);">
+                            <h4 style="margin: 0 0 10px 0; color: #efeff1; font-size: 14px; text-align: left;">Channel Emotes</h4>
+                            <div id="channelEmotesGrid" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                            <h4 style="margin: 15px 0 10px 0; color: #efeff1; font-size: 14px; text-align: left;">Global Emotes</h4>
+                            <div id="globalEmotesGrid" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                        </div>
                     </div>
                 </div>
                 <!-- Scroll to bottom button -->
