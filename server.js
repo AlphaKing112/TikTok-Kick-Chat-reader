@@ -160,6 +160,8 @@ app.get('/api/streamelements-proxy', async (req, res) => {
             // Rewrite asset URLs to proxy through /api/proxy-asset to bypass CORS
             html = html.replace(/src="https:\/\/streamelements\.com\//g, 'src="/api/proxy-asset?url=https://streamelements.com/');
             html = html.replace(/href="https:\/\/streamelements\.com\//g, 'href="/api/proxy-asset?url=https://streamelements.com/');
+            html = html.replace(/src="\.\/assets\//g, 'src="/api/proxy-asset?url=https://streamelements.com/assets/');
+            html = html.replace(/href="\.\/assets\//g, 'href="/api/proxy-asset?url=https://streamelements.com/assets/');
             html = html.replace(/src="\/assets\//g, 'src="/api/proxy-asset?url=https://streamelements.com/assets/');
             html = html.replace(/href="\/assets\//g, 'href="/api/proxy-asset?url=https://streamelements.com/assets/');
 
@@ -193,9 +195,20 @@ app.get('/api/proxy-asset', async (req, res) => {
             timeout: 10000
         });
 
-        const contentType = response.headers['content-type'] || 'application/javascript';
+        let contentType = response.headers['content-type'] || '';
+        const cleanUrl = assetUrl.split('?')[0].toLowerCase();
+        if (cleanUrl.endsWith('.css')) contentType = 'text/css; charset=utf-8';
+        else if (cleanUrl.endsWith('.js') || cleanUrl.endsWith('.mjs')) contentType = 'application/javascript; charset=utf-8';
+        else if (cleanUrl.endsWith('.svg')) contentType = 'image/svg+xml';
+        else if (cleanUrl.endsWith('.png')) contentType = 'image/png';
+        else if (cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) contentType = 'image/jpeg';
+        else if (cleanUrl.endsWith('.woff2')) contentType = 'font/woff2';
+        else if (cleanUrl.endsWith('.woff')) contentType = 'font/woff';
+        else if (!contentType) contentType = 'application/octet-stream';
+
         res.setHeader('Content-Type', contentType);
         res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
         res.send(Buffer.from(response.data));
     } catch (e) {
         res.status(404).send('Asset Proxy Error');
