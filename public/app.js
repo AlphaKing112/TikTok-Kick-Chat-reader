@@ -2194,7 +2194,7 @@ function setLiveDot(dotId, isLive) {
 function scrollToBottom() {
     const container = $('.chatcontainer').length ? $('.chatcontainer') : $('.eventcontainer');
     if (container.length) {
-        container.scrollTop(container[0].scrollHeight);
+        container.scrollTop(container[0].scrollHeight + 500);
         shouldAutoScroll = true;
         isUserScrolling = false;
         $('#scrollToBottomBtn').fadeOut(200);
