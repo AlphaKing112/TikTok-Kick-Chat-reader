@@ -1457,6 +1457,48 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     }
 }
 
+/* Mobile Phone Responsive Chat Dock Fix */
+@media (max-width: 768px) {
+    #mainDashboardView.active {
+        display: flex !important;
+        flex-direction: column !important;
+        height: calc(100vh - 45px) !important;
+        height: calc(100dvh - 45px) !important;
+    }
+
+    #mainDashboardTop {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    #mainDashboardBottomDock {
+        height: 48vh !important;
+        height: 48dvh !important;
+        min-height: 200px !important;
+        max-height: 65vh !important;
+        flex-shrink: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    #mainChatContainer {
+        height: 100% !important;
+        min-height: 0 !important;
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .chatcontainer {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+}
+
 /* Bottom Chat Reader Dock inside custom web tabs */
 .bottom-chat-dock {
     height: 380px;

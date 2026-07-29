@@ -3757,14 +3757,14 @@ function switchToTab(tabId) {
     if (tabId === 'main') {
         $('.custom-tab-container').removeClass('active').hide();
         $('#customViewsContainer').hide();
-        $('#mainDashboardView').show();
+        $('#mainDashboardView').addClass('active').css('display', 'flex').show();
 
         const mainDockContent = $('#mainChatDockContent');
         if (mainDockContent.length && mainChat.length && !$.contains(mainDockContent[0], mainChat[0])) {
             mainDockContent.append(mainChat);
         }
     } else {
-        $('#mainDashboardView').hide();
+        $('#mainDashboardView').removeClass('active').hide();
         $('#customViewsContainer').show();
         $('.custom-tab-container').removeClass('active').hide();
 
