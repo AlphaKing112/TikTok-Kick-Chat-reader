@@ -3847,11 +3847,7 @@ function openTabExternal(url) {
 
 function getTabIframeSrc(rawUrl) {
     if (!rawUrl) return '';
-    const trimmed = rawUrl.trim();
-    if (trimmed.startsWith('/') || trimmed.includes('localhost') || trimmed.includes('127.0.0.1')) {
-        return trimmed;
-    }
-    return '/api/proxy-view?url=' + encodeURIComponent(trimmed);
+    return rawUrl.trim();
 }
 
 function renderTabs() {
