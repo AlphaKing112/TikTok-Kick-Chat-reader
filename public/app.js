@@ -3855,17 +3855,17 @@ function renderTabs() {
                 <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}">
                     <!-- Top Toolbar -->
                     <div class="custom-web-toolbar">
-                        <button class="custom-web-btn" onclick="reloadTabIframe('${tab.id}')" title="Reload page">🔄 Refresh</button>
+                        <button class="custom-web-btn" onclick="reloadTabIframe('${tab.id}')" title="Reload page">🔄</button>
                         <div class="custom-url-bar">
-                            <span style="font-size: 1em;">🔒</span>
+                            <span style="font-size: 0.9em;">🔒</span>
                             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(tab.url)}</span>
                         </div>
-                        <button class="custom-web-btn" onclick="openTabExternal('${escapeHtml(tab.url)}')" title="Open in new window">↗ Open in Browser</button>
+                        <button class="custom-web-btn" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: #fff; font-weight: bold; border: none; box-shadow: 0 2px 6px rgba(88,166,255,0.3);" onclick="openTabExternal('${escapeHtml(tab.url)}')" title="Open in new window or mobile browser">↗ Open Site</button>
                     </div>
 
                     <!-- Embedded Website Iframe -->
                     <div class="custom-web-frame-wrapper">
-                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${escapeHtml(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
+                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${escapeHtml(tab.url)}" allow="autoplay; camera; microphone; clipboard-read; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-presentation allow-downloads allow-pointer-lock allow-top-navigation-by-user-activation" loading="lazy"></iframe>
                     </div>
 
                     <!-- Bottom Chat Reader Dock -->
