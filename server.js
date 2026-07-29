@@ -158,6 +158,9 @@ app.use('/proxy-site', (req, res, next) => {
         proxyReqPathResolver: () => pathAndQuery,
         proxyReqOptDecorator: (proxyReqOpts) => {
             proxyReqOpts.headers['accept-encoding'] = 'identity';
+            proxyReqOpts.headers['origin'] = targetHost;
+            proxyReqOpts.headers['referer'] = targetHost;
+            proxyReqOpts.headers['host'] = parsed.host;
             return proxyReqOpts;
         },
         userResHeaderDecorator: (headers) => {
@@ -168,6 +171,9 @@ app.use('/proxy-site', (req, res, next) => {
             delete headers['frame-options'];
             delete headers['content-encoding'];
             delete headers['Content-Encoding'];
+            headers['access-control-allow-origin'] = '*';
+            headers['access-control-allow-headers'] = '*';
+            headers['access-control-allow-methods'] = '*';
             return headers;
         },
         userResDecorator: (proxyRes, proxyResData, userReq, userRes) => {
