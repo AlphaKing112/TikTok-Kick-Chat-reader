@@ -3883,7 +3883,7 @@ function renderTabs() {
                     </div>
 
                     <div class="custom-web-frame-wrapper" style="flex: 1; min-height: 0;">
-                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${getTabIframeSrc(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
+                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${getTabIframeSrc(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen; camera; microphone"></iframe>
                     </div>
 
                     <div class="bottom-chat-dock" id="chatDock_${tab.id}" style="z-index: 10;">

@@ -170,36 +170,56 @@ const handleUnframeProxy = async (req, res) => {
                 $.root().prepend(`<base href="${origin}/">`);
             }
 
-            // Rewrite stylesheet links
-            $('link[rel="stylesheet"], link[rel="style"], link[rel="preload"][as="style"]').each((_, el) => {
+            // Rewrite ALL link tags (stylesheets, modulepreload, preload, icons, manifests)
+            $('link[href]').each((_, el) => {
                 const href = $(el).attr('href');
-                if (href && !href.startsWith('data:')) {
+                if (href && !href.startsWith('data:') && !href.startsWith('javascript:')) {
                     try {
                         const absUrl = new URL(href, targetUrl).href;
                         $(el).attr('href', localProxyPrefix + encodeURIComponent(absUrl));
+                        $(el).removeAttr('crossorigin');
                     } catch (e) {}
                 }
             });
 
-            // Rewrite script tags
+            // Rewrite script tags and strip crossorigin to force same-origin proxy load
             $('script[src]').each((_, el) => {
                 const src = $(el).attr('src');
-                if (src && !src.startsWith('data:')) {
+                if (src && !src.startsWith('data:') && !src.startsWith('javascript:')) {
                     try {
                         const absUrl = new URL(src, targetUrl).href;
                         $(el).attr('src', localProxyPrefix + encodeURIComponent(absUrl));
+                        $(el).removeAttr('crossorigin');
                     } catch (e) {}
                 }
             });
 
-            // Rewrite image sources
-            $('img[src]').each((_, el) => {
+            // Rewrite image, audio, video sources
+            $('img[src], audio[src], video[src], source[src]').each((_, el) => {
                 const src = $(el).attr('src');
-                if (src && !src.startsWith('data:')) {
+                if (src && !src.startsWith('data:') && !src.startsWith('javascript:')) {
                     try {
                         const absUrl = new URL(src, targetUrl).href;
                         $(el).attr('src', localProxyPrefix + encodeURIComponent(absUrl));
+                        $(el).removeAttr('crossorigin');
                     } catch (e) {}
+                }
+            });
+
+            // Rewrite inline <style> url(...) calls
+            $('style').each((_, el) => {
+                let css = $(el).html();
+                if (css) {
+                    css = css.replace(/url\((['"]?)([^'"\)]+)\1\)/g, (match, quote, url) => {
+                        if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) return match;
+                        try {
+                            const absUrl = new URL(url, targetUrl).href;
+                            return `url("${localProxyPrefix}${encodeURIComponent(absUrl)}")`;
+                        } catch (e) {
+                            return match;
+                        }
+                    });
+                    $(el).html(css);
                 }
             });
 
@@ -217,6 +237,15 @@ const handleUnframeProxy = async (req, res) => {
 
 app.get('/api/streamelements-proxy', handleUnframeProxy);
 app.get('/api/unframe-proxy', handleUnframeProxy);
+
+// Dynamic module JS asset fallback route to catch relative imports requesting /api/*.js directly
+app.get('/api/*.js', async (req, res) => {
+    const filename = req.path.split('/').pop();
+    if (!filename || filename === 'server.js') return res.status(404).send('Not found');
+    const targetUrl = `https://streamelements.com/assets/dashboard/${filename}`;
+    const protocol = (req.headers['x-forwarded-proto'] || req.protocol).split(',')[0].trim();
+    return res.redirect(`${protocol}://${req.get('host')}/api/proxy-asset?url=${encodeURIComponent(targetUrl)}`);
+});
 
 app.get('/api/proxy-asset', async (req, res) => {
     try {
