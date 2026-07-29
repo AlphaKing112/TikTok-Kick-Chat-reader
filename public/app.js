@@ -3756,7 +3756,7 @@ function switchToTab(tabId) {
 
     if (tabId === 'main') {
         // Show main dashboard, hide custom views
-        $('#customViewsContainer').hide();
+        $('#customViewsContainer').css('display', 'none');
         $('#mainDashboardView').css('display', 'flex');
 
         // Move chat back to main dock
@@ -3766,19 +3766,19 @@ function switchToTab(tabId) {
         }
     } else {
         // Hide main dashboard, show custom views
-        $('#mainDashboardView').hide();
-        $('#customViewsContainer').show();
+        $('#mainDashboardView').css('display', 'none');
+        $('#customViewsContainer').css('display', 'block');
 
         // Ensure the tab view exists - if not, create it
         if (!$(`#tab_view_${tabId}`).length) {
             renderTabs();
         }
 
-        // Show only the active tab view
-        $('.custom-tab-container').hide().removeClass('active');
+        // Show only the active tab view - MUST use flex not block
+        $('.custom-tab-container').css('display', 'none').removeClass('active');
         const viewElem = $(`#tab_view_${tabId}`);
         if (viewElem.length) {
-            viewElem.addClass('active').show();
+            viewElem.addClass('active').css('display', 'flex');
         }
 
         // Move chat into the active tab's dock
