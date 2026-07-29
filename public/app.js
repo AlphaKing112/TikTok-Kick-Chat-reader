@@ -3746,22 +3746,16 @@ function switchToTab(tabId) {
     // Toggle views
     if (tabId === 'main') {
         $('.custom-tab-container').removeClass('active');
-        $('#mainDashboardView').show();
+        $('#mainDashboardView').css('display', 'flex');
 
-        // Restore main chat container styling
-        $('#mainChatContainer').removeClass('in-dock');
-
-        // Ensure main chat container is in the main chat table cell
-        const mainCell = $('.splitchattable td').first();
-        if (mainCell.length && !$.contains(mainCell[0], $('#mainChatContainer')[0])) {
-            mainCell.append($('#mainChatContainer'));
+        // Ensure main chat container is in the main chat dock content container
+        const mainDockContent = $('#mainChatDockContent');
+        if (mainDockContent.length && !$.contains(mainDockContent[0], $('#mainChatContainer')[0])) {
+            mainDockContent.append($('#mainChatContainer'));
         }
     } else {
         $('#mainDashboardView').hide();
         $('.custom-tab-container').removeClass('active');
-
-        // Apply dock styling (removes inner chat cropping & inner resize handle)
-        $('#mainChatContainer').addClass('in-dock');
 
         let viewElem = $(`#tab_view_${tabId}`);
         if (!viewElem.length) {
@@ -3776,6 +3770,47 @@ function switchToTab(tabId) {
         if (dockContent.length && !$.contains(dockContent[0], $('#mainChatContainer')[0])) {
             dockContent.append($('#mainChatContainer'));
         }
+    }
+}
+
+function initMainDockResize(e) {
+    const dock = document.getElementById('mainDashboardBottomDock');
+    if (!dock) return;
+
+    let isResizing = true;
+    let startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+    let startHeight = dock.getBoundingClientRect().height;
+
+    function handleMove(moveEvent) {
+        if (!isResizing) return;
+        const currentY = moveEvent.type.includes('touch') ? moveEvent.touches[0].clientY : moveEvent.clientY;
+        const deltaY = startY - currentY;
+        const newHeight = startHeight + deltaY;
+
+        if (newHeight > 150 && newHeight < window.innerHeight * 0.85) {
+            dock.style.height = newHeight + 'px';
+        }
+
+        if (moveEvent.type.includes('touch') && moveEvent.cancelable) {
+            moveEvent.preventDefault();
+        }
+    }
+
+    function stopResize() {
+        isResizing = false;
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', stopResize);
+        document.removeEventListener('touchmove', handleMove);
+        document.removeEventListener('touchend', stopResize);
+    }
+
+    if (e.type.includes('touch')) {
+        document.addEventListener('touchmove', handleMove, { passive: false });
+        document.addEventListener('touchend', stopResize);
+    } else {
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', stopResize);
+        e.preventDefault();
     }
 }
 

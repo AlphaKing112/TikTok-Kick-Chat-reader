@@ -1319,6 +1319,23 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     box-shadow: 0 4px 14px rgba(88, 166, 255, 0.4);
 }
 
+/* Main Dashboard View Layout */
+#mainDashboardView {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 45px);
+    width: 100%;
+    overflow: hidden;
+}
+
+#mainDashboardTop {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 0 10px 10px 10px;
+    -webkit-overflow-scrolling: touch;
+}
+
 /* Embedded Web View Layout */
 .custom-tab-container {
     display: none;
