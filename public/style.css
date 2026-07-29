@@ -1330,15 +1330,15 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 
 /* Main Dashboard View Layout */
 #mainDashboardView {
-    display: flex;
+    display: none;
     flex-direction: column;
-    position: absolute;
+    position: fixed;
     top: 45px;
     left: 0;
     right: 0;
     bottom: 0;
-    width: 100%;
     overflow: hidden;
+    background: #181a20;
 }
 
 #mainDashboardTop {
@@ -1351,31 +1351,22 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 
 /* Embedded Web View Layout */
 #customViewsContainer {
-    position: absolute;
+    position: fixed;
     top: 45px;
     left: 0;
     right: 0;
     bottom: 0;
-    width: 100%;
     display: none;
-    flex-direction: column;
     overflow: hidden;
+    background: #181a20;
 }
 
 .custom-tab-container {
     display: none;
     flex-direction: column;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
     width: 100%;
     height: 100%;
-}
-
-.custom-tab-container.active {
-    display: flex !important;
+    overflow: hidden;
 }
 
 .custom-web-toolbar {

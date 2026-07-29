@@ -3752,39 +3752,43 @@ function switchToTab(tabId) {
         activeElem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
 
-    const mainChat = $('#mainChatContainer');
+    const mainChat = document.getElementById('mainChatContainer');
 
     if (tabId === 'main') {
-        // Show main dashboard, hide custom views
-        $('#customViewsContainer').css('display', 'none');
-        $('#mainDashboardView').css('display', 'flex');
+        // Hide custom views, show main dashboard
+        document.getElementById('customViewsContainer').style.display = 'none';
+        document.getElementById('mainDashboardView').style.display = 'flex';
 
         // Move chat back to main dock
-        const mainDockContent = $('#mainChatDockContent');
-        if (mainDockContent.length && mainChat.length && !$.contains(mainDockContent[0], mainChat[0])) {
-            mainDockContent.append(mainChat);
+        const mainDockContent = document.getElementById('mainChatDockContent');
+        if (mainDockContent && mainChat && !mainDockContent.contains(mainChat)) {
+            mainDockContent.appendChild(mainChat);
         }
     } else {
-        // Hide main dashboard, show custom views
-        $('#mainDashboardView').css('display', 'none');
-        $('#customViewsContainer').css('display', 'block');
+        // Hide main dashboard, show custom views container
+        document.getElementById('mainDashboardView').style.display = 'none';
+        document.getElementById('customViewsContainer').style.display = 'flex';
+        document.getElementById('customViewsContainer').style.flexDirection = 'column';
 
-        // Ensure the tab view exists - if not, create it
-        if (!$(`#tab_view_${tabId}`).length) {
+        // Ensure the tab view exists
+        if (!document.getElementById(`tab_view_${tabId}`)) {
             renderTabs();
         }
 
-        // Show only the active tab view - MUST use flex not block
-        $('.custom-tab-container').css('display', 'none').removeClass('active');
-        const viewElem = $(`#tab_view_${tabId}`);
-        if (viewElem.length) {
-            viewElem.addClass('active').css('display', 'flex');
+        // Hide ALL tab views, then show only the active one
+        document.querySelectorAll('.custom-tab-container').forEach(el => {
+            el.style.display = 'none';
+        });
+        const viewElem = document.getElementById(`tab_view_${tabId}`);
+        if (viewElem) {
+            viewElem.style.display = 'flex';
+            viewElem.style.flexDirection = 'column';
         }
 
         // Move chat into the active tab's dock
-        const dockContent = $(`#chatDockContent_${tabId}`);
-        if (dockContent.length && mainChat.length && !$.contains(dockContent[0], mainChat[0])) {
-            dockContent.append(mainChat);
+        const dockContent = document.getElementById(`chatDockContent_${tabId}`);
+        if (dockContent && mainChat && !dockContent.contains(mainChat)) {
+            dockContent.appendChild(mainChat);
         }
     }
 }
