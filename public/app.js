@@ -3829,8 +3829,13 @@ function initMainDockResize(e) {
 function reloadTabIframe(tabId) {
     const iframe = $(`#iframe_${tabId}`);
     if (iframe.length) {
-        const src = iframe.attr('src');
-        iframe.attr('src', src);
+        const tab = customTabs.find(t => t.id === tabId);
+        if (tab) {
+            iframe.attr('src', getTabIframeSrc(tab.url));
+        } else {
+            const src = iframe.attr('src');
+            iframe.attr('src', src);
+        }
     }
 }
 
@@ -3838,6 +3843,15 @@ function openTabExternal(url) {
     if (url) {
         window.open(url, '_blank');
     }
+}
+
+function getTabIframeSrc(rawUrl) {
+    if (!rawUrl) return '';
+    const url = rawUrl.trim();
+    if (url.startsWith('/') || url.includes('localhost') || url.includes('127.0.0.1')) {
+        return url;
+    }
+    return '/proxy-site?url=' + encodeURIComponent(url);
 }
 
 function renderTabs() {
@@ -3877,7 +3891,7 @@ function renderTabs() {
 
                     <!-- Embedded Website Iframe -->
                     <div class="custom-web-frame-wrapper">
-                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${escapeHtml(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
+                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${getTabIframeSrc(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
                     </div>
 
                     <!-- Bottom Chat Reader Dock -->

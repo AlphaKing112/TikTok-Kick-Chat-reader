@@ -5,6 +5,7 @@ process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 process.env.PUPPETEER_ARGS = '--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-zygote --single-process --disable-gpu';
 
 const express = require('express');
+const proxy = require('express-http-proxy');
 const { createServer } = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -135,6 +136,38 @@ app.use(express.static('public', {
     }
 }));
 app.use(express.json());
+
+// Reverse proxy endpoint to strip anti-framing X-Frame-Options and CSP headers for any website URL
+app.use('/proxy-site', (req, res, next) => {
+    const rawUrl = req.query.url;
+    if (!rawUrl) return res.status(400).send('URL parameter missing');
+
+    let parsed;
+    try {
+        let url = rawUrl.trim();
+        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+        parsed = new URL(url);
+    } catch (e) {
+        return res.status(400).send('Invalid URL');
+    }
+
+    const targetHost = parsed.origin;
+    const pathAndQuery = parsed.pathname + parsed.search + parsed.hash;
+
+    const proxyHandler = proxy(targetHost, {
+        proxyReqPathResolver: () => pathAndQuery,
+        userResHeaderDecorator: (headers) => {
+            delete headers['x-frame-options'];
+            delete headers['X-Frame-Options'];
+            delete headers['content-security-policy'];
+            delete headers['Content-Security-Policy'];
+            delete headers['frame-options'];
+            return headers;
+        }
+    });
+
+    proxyHandler(req, res, next);
+});
 
 
 
