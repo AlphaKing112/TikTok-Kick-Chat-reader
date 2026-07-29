@@ -3738,14 +3738,13 @@ function switchToPrevTab() {
 function switchToTab(tabId) {
     activeTabId = tabId;
 
-    // Update active tab styling
-    $('.browser-tab').removeClass('active');
+    // Re-render tab headers to update active tab highlight state
+    renderTabs();
+
     let activeElem = null;
     if (tabId === 'main') {
-        $('#tab-main').addClass('active');
         activeElem = document.getElementById('tab-main');
     } else {
-        $(`#tab_header_${tabId}`).addClass('active');
         activeElem = document.getElementById(`tab_header_${tabId}`);
     }
 
@@ -3754,21 +3753,23 @@ function switchToTab(tabId) {
         activeElem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
 
+    const mainChat = $('#mainChatContainer');
+
     // Toggle views
     if (tabId === 'main') {
-        $('.custom-tab-container').removeClass('active');
+        $('.custom-tab-container').removeClass('active').hide();
         $('#customViewsContainer').hide();
         $('#mainDashboardView').css('display', 'flex');
 
         // Ensure main chat container is in the main chat dock content container
         const mainDockContent = $('#mainChatDockContent');
-        if (mainDockContent.length && !$.contains(mainDockContent[0], $('#mainChatContainer')[0])) {
-            mainDockContent.append($('#mainChatContainer'));
+        if (mainDockContent.length && mainChat.length && !$.contains(mainDockContent[0], mainChat[0])) {
+            mainDockContent.append(mainChat);
         }
     } else {
         $('#mainDashboardView').hide();
         $('#customViewsContainer').css('display', 'flex');
-        $('.custom-tab-container').removeClass('active');
+        $('.custom-tab-container').removeClass('active').hide();
 
         let viewElem = $(`#tab_view_${tabId}`);
         if (!viewElem.length) {
@@ -3776,12 +3777,14 @@ function switchToTab(tabId) {
             viewElem = $(`#tab_view_${tabId}`);
         }
 
-        viewElem.addClass('active');
+        if (viewElem.length) {
+            viewElem.addClass('active').css('display', 'flex');
+        }
 
         // Move Chat Reader into the active tab's bottom chat dock content area
         const dockContent = $(`#chatDockContent_${tabId}`);
-        if (dockContent.length && !$.contains(dockContent[0], $('#mainChatContainer')[0])) {
-            dockContent.append($('#mainChatContainer'));
+        if (dockContent.length && mainChat.length && !$.contains(dockContent[0], mainChat[0])) {
+            dockContent.append(mainChat);
         }
     }
 }
