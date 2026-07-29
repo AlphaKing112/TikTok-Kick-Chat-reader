@@ -3894,7 +3894,7 @@ function initDockResize(e, tabId) {
         const deltaY = startY - currentY;
         const newHeight = startHeight + deltaY;
 
-        if (newHeight > 150 && newHeight < window.innerHeight * 0.8) {
+        if (newHeight > 150 && newHeight < window.innerHeight * 0.85) {
             dock.style.height = newHeight + 'px';
         }
 

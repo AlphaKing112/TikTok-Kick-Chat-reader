@@ -98,14 +98,15 @@ a:hover {
 }
 
 .chatcontainer, .eventcontainer {
-    overflow-y: scroll;
-    height: 60vh;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
     word-wrap: break-word;
     background: #23243a;
     border-radius: 12px;
     box-shadow: 0 2px 16px #0006;
     padding: 12px 6px 8px 6px;
-    margin: 0 0 16px 0;
+    margin: 0;
     min-width: 0;
     max-width: 100vw;
     transition: box-shadow 0.3s;
