@@ -3831,8 +3831,7 @@ function reloadTabIframe(tabId) {
     if (iframe.length) {
         const tab = customTabs.find(t => t.id === tabId);
         if (tab) {
-            const isProxyOn = (typeof tab.useProxy !== 'undefined') ? !!tab.useProxy : shouldAutoUseProxy(tab.url);
-            iframe.attr('src', getTabIframeSrc(tab.url, isProxyOn));
+            iframe.attr('src', getTabIframeSrc(tab.url, tab.useProxy));
         } else {
             const src = iframe.attr('src');
             iframe.attr('src', src);
@@ -3846,10 +3845,24 @@ function openTabExternal(url) {
     }
 }
 
+function shouldAutoUseProxy(rawUrl) {
+    if (!rawUrl) return false;
+    const url = rawUrl.trim().toLowerCase();
+    if (url.includes('localhost') || url.includes('127.0.0.1') || url.startsWith('/')) {
+        return false;
+    }
+    // Main domain homepages known to set X-Frame-Options
+    if (/^https?:\/\/(www\.)?(streamelements\.com\/?|instagram\.com\/?|tiktok\.com\/?|facebook\.com\/?)$/i.test(url)) {
+        return true;
+    }
+    return false;
+}
+
 function getTabIframeSrc(rawUrl, useProxy) {
     if (!rawUrl) return '';
     const trimmed = rawUrl.trim();
-    if (useProxy) {
+    const isProxyNeeded = (typeof useProxy === 'boolean') ? useProxy : shouldAutoUseProxy(trimmed);
+    if (isProxyNeeded) {
         return '/api/proxy-view?url=' + encodeURIComponent(trimmed);
     }
     return trimmed;
@@ -3859,7 +3872,11 @@ function toggleTabProxy(tabId) {
     const tab = customTabs.find(t => t.id === tabId);
     if (!tab) return;
 
-    tab.useProxy = (typeof tab.useProxy !== 'undefined') ? !tab.useProxy : !shouldAutoUseProxy(tab.url);
+    if (typeof tab.useProxy === 'boolean') {
+        tab.useProxy = !tab.useProxy;
+    } else {
+        tab.useProxy = !shouldAutoUseProxy(tab.url);
+    }
     saveCustomTabsToStorage();
 
     const iframe = $(`#iframe_${tabId}`);
@@ -3898,7 +3915,7 @@ function renderTabs() {
 
         // Tab View Container
         if (!$(`#tab_view_${tab.id}`).length) {
-            const isProxyOn = (typeof tab.useProxy !== 'undefined') ? !!tab.useProxy : shouldAutoUseProxy(tab.url);
+            const isProxyOn = (typeof tab.useProxy === 'boolean') ? tab.useProxy : shouldAutoUseProxy(tab.url);
             const tabView = $(`
                 <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}">
                     <!-- Top Toolbar -->
