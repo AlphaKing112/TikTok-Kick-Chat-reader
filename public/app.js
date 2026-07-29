@@ -3777,11 +3777,6 @@ function switchToTab(tabId) {
         if (viewElem.length) {
             viewElem.addClass('active').show();
         }
-
-        const dockContent = $(`#chatDockContent_${tabId}`);
-        if (dockContent.length && mainChat.length && !$.contains(dockContent[0], mainChat[0])) {
-            dockContent.append(mainChat);
-        }
     }
 }
 
@@ -3890,36 +3885,14 @@ function renderTabs() {
                     </div>
 
                     <!-- Embedded Website Iframe -->
-                    <div class="custom-web-frame-wrapper">
+                    <div class="custom-web-frame-wrapper" style="flex: 1; height: calc(100% - 46px);">
                         <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${getTabIframeSrc(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
-                    </div>
-
-                    <!-- Bottom Chat Reader Dock -->
-                    <div class="bottom-chat-dock" id="chatDock_${tab.id}" style="z-index: 10;">
-                        <div class="dock-resize-handle" onmousedown="initDockResize(event, '${tab.id}')" ontouchstart="initDockResize(event, '${tab.id}')">
-                            <div></div>
-                        </div>
-                        <div class="dock-header">
-                            <h4><span>💬</span> Embedded Chat Reader & Options</h4>
-                            <div class="dock-controls">
-                                <button onclick="switchToTab('main')" title="Go back to full dashboard">🖥️ Full Dashboard</button>
-                            </div>
-                        </div>
-                        <div id="chatDockContent_${tab.id}" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;"></div>
                     </div>
                 </div>
             `);
             customViewsContainer.append(tabView);
         }
     });
-
-    // If active tab was a custom tab, ensure its dock contains mainChatContainer
-    if (activeTabId !== 'main') {
-        const activeDock = $(`#chatDockContent_${activeTabId}`);
-        if (activeDock.length) {
-            activeDock.append($('#mainChatContainer'));
-        }
-    }
 }
 
 function escapeHtml(text) {
