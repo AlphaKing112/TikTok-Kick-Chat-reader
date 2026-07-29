@@ -1337,10 +1337,17 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 }
 
 /* Embedded Web View Layout */
+#customViewsContainer {
+    width: 100%;
+    height: calc(100vh - 45px);
+    display: flex;
+    flex-direction: column;
+}
+
 .custom-tab-container {
     display: none;
     flex-direction: column;
-    height: calc(100vh - 45px);
+    height: 100%;
     width: 100%;
 }
 

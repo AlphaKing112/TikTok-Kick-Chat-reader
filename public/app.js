@@ -3657,7 +3657,11 @@ function formatTabUrl(inputUrl) {
     let url = (inputUrl || '').trim();
     if (!url) return '';
     if (!/^https?:\/\//i.test(url)) {
-        url = 'https://' + url;
+        if (!url.includes('.') || url.includes(' ')) {
+            url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+        } else {
+            url = 'https://' + url;
+        }
     }
     return url;
 }
@@ -3865,7 +3869,13 @@ function renderTabs() {
 
                     <!-- Embedded Website Iframe -->
                     <div class="custom-web-frame-wrapper">
-                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${escapeHtml(tab.url)}" allow="autoplay; camera; microphone; clipboard-read; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-presentation allow-downloads allow-pointer-lock allow-top-navigation-by-user-activation" loading="lazy"></iframe>
+                        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #12141d; color: #8c92a6; padding: 20px; text-align: center; z-index: 0;">
+                            <span style="font-size: 2.4em; margin-bottom: 8px;">🌐</span>
+                            <h4 style="margin: 0 0 6px 0; color: #e3e5eb; font-size: 1.05em;">Loading Website...</h4>
+                            <p style="margin: 0 0 14px 0; font-size: 0.85em; max-width: 380px; color: #8a8f9e; line-height: 1.3;">If this page restricts embedded viewing, tap below to open it directly in your browser.</p>
+                            <button class="custom-web-btn" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: #fff; font-weight: bold; border: none; padding: 8px 18px; font-size: 0.88em; border-radius: 8px; box-shadow: 0 2px 10px rgba(88,166,255,0.3);" onclick="openTabExternal('${escapeHtml(tab.url)}')">↗ Open Website in Browser</button>
+                        </div>
+                        <iframe id="iframe_${tab.id}" class="custom-web-frame" style="position: relative; z-index: 1;" src="${escapeHtml(tab.url)}" allow="autoplay; camera; microphone; clipboard-read; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-presentation allow-downloads allow-pointer-lock allow-top-navigation-by-user-activation" loading="lazy"></iframe>
                     </div>
 
                     <!-- Bottom Chat Reader Dock -->
