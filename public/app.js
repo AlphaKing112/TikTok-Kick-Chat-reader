@@ -3669,6 +3669,7 @@ function formatTabUrl(inputUrl) {
 function saveNewTab() {
     const title = $('#newTabTitle').val().trim() || 'New Website';
     const rawUrl = $('#newTabUrl').val();
+    const useUnframe = $('#newTabUnframeProxy').is(':checked');
     const url = formatTabUrl(rawUrl);
 
     if (!rawUrl.trim()) {
@@ -3681,7 +3682,8 @@ function saveNewTab() {
     const newTab = {
         id: tabId,
         title: title,
-        url: url
+        url: url,
+        useUnframeProxy: useUnframe
     };
 
     customTabs.push(newTab);
@@ -3842,9 +3844,27 @@ function openTabExternal(url) {
     }
 }
 
-function getTabIframeSrc(rawUrl) {
-    if (!rawUrl) return '';
-    return rawUrl.trim();
+function getTabIframeSrc(tabOrUrl) {
+    if (!tabOrUrl) return '';
+    if (typeof tabOrUrl === 'object') {
+        if (tabOrUrl.useUnframeProxy) {
+            return '/api/unframe-proxy?url=' + encodeURIComponent(tabOrUrl.url);
+        }
+        return tabOrUrl.url;
+    }
+    return String(tabOrUrl).trim();
+}
+
+function toggleTabUnframeProxy(tabId) {
+    const tab = customTabs.find(t => t.id === tabId);
+    if (!tab) return;
+    tab.useUnframeProxy = !tab.useUnframeProxy;
+    saveCustomTabsToStorage();
+    const iframe = $(`#iframe_${tabId}`);
+    if (iframe.length) {
+        iframe.attr('src', getTabIframeSrc(tab));
+    }
+    renderTabs();
 }
 
 function renderTabs() {
@@ -3857,6 +3877,7 @@ function renderTabs() {
 
     customTabs.forEach(tab => {
         const isActive = activeTabId === tab.id;
+        const isUnframed = !!tab.useUnframeProxy;
         const tabHeader = $(`
             <div class="browser-tab ${isActive ? 'active' : ''}" id="tab_header_${tab.id}" onclick="switchToTab('${tab.id}')" title="${tab.title} (${tab.url})">
                 <span class="tab-icon">🌐</span>
@@ -3875,11 +3896,12 @@ function renderTabs() {
                             <span style="font-size: 0.9em;">🔒</span>
                             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(tab.url)}</span>
                         </div>
+                        <button class="custom-web-btn" onclick="toggleTabUnframeProxy('${tab.id}')" title="${isUnframed ? 'Currently using Un-frame Proxy. Click to switch to Direct mode.' : 'Click if page is blocked by X-Frame-Options to bypass iframe protection.'}" style="background: ${isUnframed ? 'rgba(88, 166, 255, 0.25)' : 'rgba(255, 255, 255, 0.08)'}; color: ${isUnframed ? '#58a6ff' : '#aaa'}; border: 1px solid ${isUnframed ? '#58a6ff' : 'rgba(255,255,255,0.1)'}; margin-right: 6px;">${isUnframed ? '⚡ Un-framed' : '🌐 Direct'}</button>
                         <button class="custom-web-btn" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: #fff; font-weight: bold; border: none; box-shadow: 0 2px 6px rgba(88,166,255,0.3);" onclick="openTabExternal('${escapeHtml(tab.url)}')" title="Open in new window or mobile browser">↗ Open Site</button>
                     </div>
 
                     <div class="custom-web-frame-wrapper" style="flex: 1; min-height: 0;">
-                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${getTabIframeSrc(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen; camera; microphone"></iframe>
+                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${getTabIframeSrc(tab)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen; camera; microphone"></iframe>
                     </div>
 
                     <div class="bottom-chat-dock" id="chatDock_${tab.id}" style="z-index: 10;">
