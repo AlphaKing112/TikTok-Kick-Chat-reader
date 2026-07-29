@@ -9,14 +9,14 @@
     <meta name="description" content="A chat reader for TikTok LIVE utilizing TikTok-Live-Connector and Socket.IO to forward the data to the client. This demo project uses the unofficial TikTok API to retrieve chat comments, gifts and other events from TikTok LIVE.">
     <meta name="keywords" content="TikTok,Live,Livestream,Chat,Reader,Scraper,Tracker,tiktok.com,broadcast,api,library,node,node.js,javascript">
 
-    <link rel="stylesheet" href="style.css?v=33">
+    <link rel="stylesheet" href="style.css?v=34">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <script src="connection.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
-    <script src="app.js?v=33"></script>
+    <script src="app.js?v=34"></script>
     <script src="https://player.twitch.tv/js/embed/v1.js"></script>
 </head>
 <body>
@@ -450,64 +450,7 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const handle = document.getElementById('chatResizeHandle');
-        const container = document.getElementById('mainChatContainer');
-        let isResizing = false;
-        let startY;
-        let startHeight;
-
-        handle.addEventListener('mousedown', startResize);
-        handle.addEventListener('touchstart', startResize, { passive: false });
-
-        function startResize(e) {
-            isResizing = true;
-            startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-            startHeight = container.getBoundingClientRect().height;
-            
-            if (e.type.includes('touch')) {
-                document.addEventListener('touchmove', handleMove, { passive: false });
-                document.addEventListener('touchend', stopResize);
-            } else {
-                document.addEventListener('mousemove', handleMove);
-                document.addEventListener('mouseup', stopResize);
-                e.preventDefault();
-            }
-        }
-
-        function handleMove(e) {
-            if (!isResizing) return;
-            const currentY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-            const deltaY = startY - currentY;
-            let newHeight = startHeight + deltaY;
-
-            // Constrain height so the bottom of the container stays within the visible screen area
-            const topPos = container.getBoundingClientRect().top;
-            const maxAvailableHeight = Math.max(180, window.innerHeight - topPos - 16);
-            const maxHeight = Math.min(window.innerHeight * 0.85, maxAvailableHeight);
-
-            if (newHeight > 150) {
-                if (newHeight > maxHeight) {
-                    newHeight = maxHeight;
-                }
-                container.style.height = newHeight + 'px';
-            }
-
-            if (e.type.includes('touch') && e.cancelable) {
-                e.preventDefault(); // Prevent mobile scrolling while resizing
-            }
-        }
-
-        function stopResize() {
-            isResizing = false;
-            document.removeEventListener('mousemove', handleMove);
-            document.removeEventListener('mouseup', stopResize);
-            document.removeEventListener('touchmove', handleMove);
-            document.removeEventListener('touchend', stopResize);
-        }
-    });
-
-function buildOverlayUrl() {
+    function buildOverlayUrl() {
     let tiktokUsername = $('#uniqueIdInput').val().trim();
     let kickChannel = $('#kickLinkInput').val().trim();
     let twitchChannel = $('#twitchInput').val().trim();

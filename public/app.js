@@ -3777,6 +3777,11 @@ function switchToTab(tabId) {
         if (viewElem.length) {
             viewElem.addClass('active').show();
         }
+
+        const dockContent = $(`#chatDockContent_${tabId}`);
+        if (dockContent.length && mainChat.length && !$.contains(dockContent[0], mainChat[0])) {
+            dockContent.append(mainChat);
+        }
     }
 }
 
@@ -3794,7 +3799,7 @@ function initMainDockResize(e) {
         const deltaY = startY - currentY;
         const newHeight = startHeight + deltaY;
 
-        if (newHeight > 150 && newHeight < window.innerHeight * 0.85) {
+        if (newHeight > 100 && newHeight < window.innerHeight * 0.88) {
             dock.style.height = newHeight + 'px';
         }
 
@@ -3885,14 +3890,30 @@ function renderTabs() {
                     </div>
 
                     <!-- Embedded Website Iframe -->
-                    <div class="custom-web-frame-wrapper" style="flex: 1; height: calc(100% - 46px);">
+                    <div class="custom-web-frame-wrapper" style="flex: 1; min-height: 0;">
                         <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${getTabIframeSrc(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
+                    </div>
+
+                    <!-- Bottom Chat Reader Dock -->
+                    <div class="bottom-chat-dock" id="chatDock_${tab.id}" style="z-index: 10;">
+                        <div class="dock-resize-handle" onmousedown="initDockResize(event, '${tab.id}')" ontouchstart="initDockResize(event, '${tab.id}')" title="Drag up or down to resize chat">
+                            <div></div>
+                        </div>
+                        <div id="chatDockContent_${tab.id}" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;"></div>
                     </div>
                 </div>
             `);
             customViewsContainer.append(tabView);
         }
     });
+
+    // If active tab was a custom tab, ensure its dock contains mainChatContainer
+    if (activeTabId !== 'main') {
+        const activeDock = $(`#chatDockContent_${activeTabId}`);
+        if (activeDock.length && mainChat.length && !$.contains(activeDock[0], mainChat[0])) {
+            activeDock.append($('#mainChatContainer'));
+        }
+    }
 }
 
 function escapeHtml(text) {
