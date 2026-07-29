@@ -9,14 +9,14 @@
     <meta name="description" content="A chat reader for TikTok LIVE utilizing TikTok-Live-Connector and Socket.IO to forward the data to the client. This demo project uses the unofficial TikTok API to retrieve chat comments, gifts and other events from TikTok LIVE.">
     <meta name="keywords" content="TikTok,Live,Livestream,Chat,Reader,Scraper,Tracker,tiktok.com,broadcast,api,library,node,node.js,javascript">
 
-    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="style.css?v=13">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <script src="connection.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
-    <script src="app.js?v=12"></script>
+    <script src="app.js?v=13"></script>
     <script src="https://player.twitch.tv/js/embed/v1.js"></script>
 </head>
 <body>
@@ -354,6 +354,7 @@
           <label><input type="checkbox" id="filterTiktokFollows" checked onchange="toggleTiktokFilters(); saveOverlaySettings();"> Show Follows/Shares</label>
           <label><input type="checkbox" id="filterTiktokJoins" checked onchange="toggleTiktokFilters(); saveOverlaySettings();"> Show Joins</label>
       </div>
+    </div> <!-- End roomStats -->
     </div> <!-- End mainDashboardTop -->
 
     <!-- Main Dashboard Bottom Chat Dock -->
@@ -416,11 +417,11 @@
                         <div id="globalEmotesGrid" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
                     </div>
                 </div>
-            </div>
+            </div> <!-- End mainChatContainer -->
             <!-- Scroll to bottom button -->
             <button id="scrollToBottomBtn" style="position: fixed; bottom: 20px; right: 20px; background: #1db954; color: white; border: none; border-radius: 50%; width: 50px; height: 50px; font-size: 20px; cursor: pointer; display: none; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.3);" onclick="scrollToBottom()">↓</button>
-        </div>
-    </div>
+        </div> <!-- End mainChatDockContent -->
+    </div> <!-- End mainDashboardBottomDock -->
     </div> <!-- End mainDashboardView -->
 
     <!-- Container for User-Added Custom Website Views -->
