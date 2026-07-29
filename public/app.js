@@ -3889,19 +3889,19 @@ function renderTabs() {
 
                     <!-- Embedded Website Iframe -->
                     <div class="custom-web-frame-wrapper">
-                        <!-- Fallback card shown by default, hidden when iframe loads OK -->
-                        <div id="fallback_${tab.id}" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #12141d; color: #8c92a6; padding: 20px; text-align: center; z-index: 2;">
+                        <!-- Fallback loading card - shown during load, hidden after -->
+                        <div id="fallback_${tab.id}" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #12141d; color: #8c92a6; padding: 20px; text-align: center; z-index: 2; pointer-events: none;">
                             <span style="font-size: 2.8em; margin-bottom: 10px;">🌐</span>
-                            <h4 id="fallbackTitle_${tab.id}" style="margin: 0 0 8px 0; color: #e3e5eb; font-size: 1.1em;">Loading ${escapeHtml(tab.title)}...</h4>
-                            <p id="fallbackMsg_${tab.id}" style="margin: 0 0 18px 0; font-size: 0.85em; max-width: 360px; color: #8a8f9e; line-height: 1.4;">Connecting to the website...</p>
-                            <button class="custom-web-btn" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: #fff; font-weight: bold; border: none; padding: 10px 22px; font-size: 0.9em; border-radius: 10px; box-shadow: 0 2px 12px rgba(88,166,255,0.35); cursor: pointer;" onclick="openTabExternal('${escapeHtml(tab.url)}')">↗ Open in Browser</button>
+                            <h4 style="margin: 0 0 8px 0; color: #e3e5eb; font-size: 1.1em;">Loading ${escapeHtml(tab.title)}...</h4>
+                            <p style="margin: 0; font-size: 0.85em; max-width: 360px; color: #8a8f9e; line-height: 1.4;">Please wait...</p>
                         </div>
-                        <iframe id="iframe_${tab.id}" class="custom-web-frame" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; border: none;"
+                        <iframe id="iframe_${tab.id}" class="custom-web-frame"
+                            style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; border: none;"
                             src="${escapeHtml(tab.url)}"
                             allow="autoplay; camera; microphone; clipboard-read; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
                             sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-presentation allow-downloads allow-pointer-lock allow-top-navigation-by-user-activation"
                             loading="lazy"
-                            onload="(function(f,fb,ftitle,fmsg){try{var doc=f.contentDocument||f.contentWindow.document;if(doc&&doc.body&&doc.body.innerHTML.trim()!==''){fb.style.display='none';}else{ftitle.textContent='This site blocks embedding';fmsg.textContent='${escapeHtml(tab.title).replace(/'/g,"\\'")} cannot be displayed in a frame. Tap the button below to open it directly in your browser.';}}catch(e){ftitle.textContent='This site blocks embedding';fmsg.textContent='${escapeHtml(tab.title).replace(/'/g,"\\'")} cannot be displayed in a frame. Tap below to open it in your browser.';}})(this,document.getElementById('fallback_${tab.id}'),document.getElementById('fallbackTitle_${tab.id}'),document.getElementById('fallbackMsg_${tab.id}'))">
+                            onload="var fb=document.getElementById('fallback_${tab.id}'); if(fb) fb.style.display='none';">
                         </iframe>
                     </div>
 
