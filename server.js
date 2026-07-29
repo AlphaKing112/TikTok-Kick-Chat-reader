@@ -137,6 +137,71 @@ app.use(express.static('public', {
 }));
 app.use(express.json());
 
+// === StreamElements Un-Framing Proxy ===
+app.get('/api/streamelements-proxy', async (req, res) => {
+    try {
+        let targetUrl = req.query.url || 'https://streamelements.com/';
+        if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
+
+        const response = await axios.get(targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9'
+            },
+            timeout: 10000,
+            responseType: 'text'
+        });
+
+        let html = response.data;
+        if (typeof html === 'string') {
+            const origin = new URL(targetUrl).origin;
+            
+            // Rewrite asset URLs to proxy through /api/proxy-asset to bypass CORS
+            html = html.replace(/src="https:\/\/streamelements\.com\//g, 'src="/api/proxy-asset?url=https://streamelements.com/');
+            html = html.replace(/href="https:\/\/streamelements\.com\//g, 'href="/api/proxy-asset?url=https://streamelements.com/');
+            html = html.replace(/src="\/assets\//g, 'src="/api/proxy-asset?url=https://streamelements.com/assets/');
+            html = html.replace(/href="\/assets\//g, 'href="/api/proxy-asset?url=https://streamelements.com/assets/');
+
+            const baseTag = `<base href="${origin}/">`;
+            if (/<head[^>]*>/i.test(html)) {
+                html = html.replace(/(<head[^>]*>)/i, `$1\n${baseTag}`);
+            } else {
+                html = baseTag + html;
+            }
+        }
+
+        res.removeHeader('X-Frame-Options');
+        res.removeHeader('Content-Security-Policy');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(html);
+    } catch (e) {
+        res.status(500).send('Proxy Error: ' + e.message);
+    }
+});
+
+app.get('/api/proxy-asset', async (req, res) => {
+    try {
+        const assetUrl = req.query.url;
+        if (!assetUrl) return res.status(400).send('Missing URL');
+
+        const response = await axios.get(assetUrl, {
+            responseType: 'arraybuffer',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            },
+            timeout: 10000
+        });
+
+        const contentType = response.headers['content-type'] || 'application/javascript';
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.send(Buffer.from(response.data));
+    } catch (e) {
+        res.status(404).send('Asset Proxy Error');
+    }
+});
+
 
 
 
