@@ -3615,3 +3615,347 @@ if (window.connection && window.connection.socket) {
     window.connection.socket.on('pollUpdate', renderModalPollResults);
     window.connection.socket.on('pollEnd', renderModalPollResults);
 }
+
+/* ==========================================================================
+   Tab Navigation & Custom Website Page System
+   ========================================================================== */
+let customTabs = [];
+let activeTabId = 'main';
+
+function loadSavedCustomTabs() {
+    try {
+        const saved = localStorage.getItem('combinedchat_custom_tabs');
+        if (saved) {
+            customTabs = JSON.parse(saved);
+        }
+    } catch (e) {
+        console.error('Failed to load custom tabs', e);
+        customTabs = [];
+    }
+}
+
+function saveCustomTabsToStorage() {
+    try {
+        localStorage.setItem('combinedchat_custom_tabs', JSON.stringify(customTabs));
+    } catch (e) {
+        console.error('Failed to save custom tabs', e);
+    }
+}
+
+function openAddPageModal() {
+    $('#newTabTitle').val('');
+    $('#newTabUrl').val('');
+    $('#addPageModalOverlay').css('display', 'flex');
+    setTimeout(() => $('#newTabTitle').focus(), 100);
+}
+
+function closeAddPageModal() {
+    $('#addPageModalOverlay').hide();
+}
+
+function formatTabUrl(inputUrl) {
+    let url = (inputUrl || '').trim();
+    if (!url) return '';
+    if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url;
+    }
+    return url;
+}
+
+function saveNewTab() {
+    const title = $('#newTabTitle').val().trim() || 'New Website';
+    const rawUrl = $('#newTabUrl').val();
+    const url = formatTabUrl(rawUrl);
+
+    if (!rawUrl.trim()) {
+        alert('Please enter a valid website URL.');
+        $('#newTabUrl').focus();
+        return;
+    }
+
+    const tabId = 'custom_tab_' + Date.now();
+    const newTab = {
+        id: tabId,
+        title: title,
+        url: url
+    };
+
+    customTabs.push(newTab);
+    saveCustomTabsToStorage();
+    renderTabs();
+    closeAddPageModal();
+    switchToTab(tabId);
+}
+
+function removeTab(tabId, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+
+    customTabs = customTabs.filter(t => t.id !== tabId);
+    saveCustomTabsToStorage();
+
+    $(`#tab_header_${tabId}`).remove();
+    $(`#tab_view_${tabId}`).remove();
+
+    if (activeTabId === tabId) {
+        switchToTab('main');
+    }
+}
+
+function getAllTabIds() {
+    return ['main', ...customTabs.map(t => t.id)];
+}
+
+function switchToNextTab() {
+    const ids = getAllTabIds();
+    if (ids.length <= 1) return;
+    const currentIndex = ids.indexOf(activeTabId);
+    const nextIndex = (currentIndex + 1) % ids.length;
+    switchToTab(ids[nextIndex]);
+}
+
+function switchToPrevTab() {
+    const ids = getAllTabIds();
+    if (ids.length <= 1) return;
+    const currentIndex = ids.indexOf(activeTabId);
+    const prevIndex = (currentIndex - 1 + ids.length) % ids.length;
+    switchToTab(ids[prevIndex]);
+}
+
+function switchToTab(tabId) {
+    activeTabId = tabId;
+
+    // Update active tab styling
+    $('.browser-tab').removeClass('active');
+    let activeElem = null;
+    if (tabId === 'main') {
+        $('#tab-main').addClass('active');
+        activeElem = document.getElementById('tab-main');
+    } else {
+        $(`#tab_header_${tabId}`).addClass('active');
+        activeElem = document.getElementById(`tab_header_${tabId}`);
+    }
+
+    // Auto-scroll active tab into view smoothly on mobile
+    if (activeElem && typeof activeElem.scrollIntoView === 'function') {
+        activeElem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    // Toggle views
+    if (tabId === 'main') {
+        $('.custom-tab-container').removeClass('active');
+        $('#mainDashboardView').show();
+
+        // Restore main chat container styling
+        $('#mainChatContainer').removeClass('in-dock');
+
+        // Ensure main chat container is in the main chat table cell
+        const mainCell = $('.splitchattable td').first();
+        if (mainCell.length && !$.contains(mainCell[0], $('#mainChatContainer')[0])) {
+            mainCell.append($('#mainChatContainer'));
+            if ($('#chatInputContainer').length) {
+                mainCell.append($('#chatInputContainer'));
+            }
+        }
+    } else {
+        $('#mainDashboardView').hide();
+        $('.custom-tab-container').removeClass('active');
+
+        // Apply dock styling (removes inner chat cropping & inner resize handle)
+        $('#mainChatContainer').addClass('in-dock');
+
+        let viewElem = $(`#tab_view_${tabId}`);
+        if (!viewElem.length) {
+            renderTabs();
+            viewElem = $(`#tab_view_${tabId}`);
+        }
+
+        viewElem.addClass('active');
+
+        // Move Chat Reader into the active tab's bottom chat dock content area
+        const dockContent = $(`#chatDockContent_${tabId}`);
+        if (dockContent.length && !$.contains(dockContent[0], $('#mainChatContainer')[0])) {
+            dockContent.append($('#mainChatContainer'));
+            if ($('#chatInputContainer').length) {
+                dockContent.append($('#chatInputContainer'));
+            }
+        }
+    }
+}
+
+function reloadTabIframe(tabId) {
+    const iframe = $(`#iframe_${tabId}`);
+    if (iframe.length) {
+        const src = iframe.attr('src');
+        iframe.attr('src', src);
+    }
+}
+
+function openTabExternal(url) {
+    if (url) {
+        window.open(url, '_blank');
+    }
+}
+
+function renderTabs() {
+    const tabsListContainer = $('#customTabsList');
+    const customViewsContainer = $('#customViewsContainer');
+
+    if (!tabsListContainer.length) return;
+
+    // Clear existing dynamic tab headers
+    tabsListContainer.empty();
+
+    customTabs.forEach(tab => {
+        // Tab Header
+        const isActive = activeTabId === tab.id;
+        const tabHeader = $(`
+            <div class="browser-tab ${isActive ? 'active' : ''}" id="tab_header_${tab.id}" onclick="switchToTab('${tab.id}')" title="${tab.title} (${tab.url})">
+                <span class="tab-icon">🌐</span>
+                <span class="tab-title-text">${escapeHtml(tab.title)}</span>
+                <span class="tab-close-btn" onclick="removeTab('${tab.id}', event)" title="Close tab">✕</span>
+            </div>
+        `);
+        tabsListContainer.append(tabHeader);
+
+        // Tab View Container
+        if (!$(`#tab_view_${tab.id}`).length) {
+            const tabView = $(`
+                <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}">
+                    <!-- Top Toolbar -->
+                    <div class="custom-web-toolbar">
+                        <button class="custom-web-btn" onclick="reloadTabIframe('${tab.id}')" title="Reload page">🔄 Refresh</button>
+                        <div class="custom-url-bar">
+                            <span style="font-size: 1em;">🔒</span>
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(tab.url)}</span>
+                        </div>
+                        <button class="custom-web-btn" onclick="openTabExternal('${escapeHtml(tab.url)}')" title="Open in new window">↗ Open in Browser</button>
+                    </div>
+
+                    <!-- Embedded Website Iframe -->
+                    <div class="custom-web-frame-wrapper">
+                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${escapeHtml(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
+                    </div>
+
+                    <!-- Bottom Chat Reader Dock -->
+                    <div class="bottom-chat-dock" id="chatDock_${tab.id}">
+                        <div class="dock-resize-handle" onmousedown="initDockResize(event, '${tab.id}')" ontouchstart="initDockResize(event, '${tab.id}')">
+                            <div></div>
+                        </div>
+                        <div class="dock-header">
+                            <h4><span>💬</span> Embedded Chat Reader & Options</h4>
+                            <div class="dock-controls">
+                                <button onclick="switchToTab('main')" title="Go back to full dashboard">🖥️ Full Dashboard</button>
+                            </div>
+                        </div>
+                        <div id="chatDockContent_${tab.id}" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;"></div>
+                    </div>
+                </div>
+            `);
+            customViewsContainer.append(tabView);
+        }
+    });
+
+    // If active tab was a custom tab, ensure its dock contains mainChatContainer
+    if (activeTabId !== 'main') {
+        const activeDock = $(`#chatDockContent_${activeTabId}`);
+        if (activeDock.length) {
+            activeDock.append($('#mainChatContainer'));
+            if ($('#chatInputContainer').length) {
+                activeDock.append($('#chatInputContainer'));
+            }
+        }
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function initDockResize(e, tabId) {
+    const dock = document.getElementById(`chatDock_${tabId}`);
+    if (!dock) return;
+
+    let isResizing = true;
+    let startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+    let startHeight = dock.getBoundingClientRect().height;
+
+    function handleMove(moveEvent) {
+        if (!isResizing) return;
+        const currentY = moveEvent.type.includes('touch') ? moveEvent.touches[0].clientY : moveEvent.clientY;
+        const deltaY = startY - currentY;
+        const newHeight = startHeight + deltaY;
+
+        if (newHeight > 150 && newHeight < window.innerHeight * 0.8) {
+            dock.style.height = newHeight + 'px';
+        }
+
+        if (moveEvent.type.includes('touch') && moveEvent.cancelable) {
+            moveEvent.preventDefault();
+        }
+    }
+
+    function stopResize() {
+        isResizing = false;
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', stopResize);
+        document.removeEventListener('touchmove', handleMove);
+        document.removeEventListener('touchend', stopResize);
+    }
+
+    if (e.type.includes('touch')) {
+        document.addEventListener('touchmove', handleMove, { passive: false });
+        document.addEventListener('touchend', stopResize);
+    } else {
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', stopResize);
+        e.preventDefault();
+    }
+}
+
+function setupMobileTabSwiping() {
+    const tabBar = document.getElementById('browserTabBarContainer');
+    if (!tabBar) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    tabBar.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 1) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }
+    }, { passive: true });
+
+    tabBar.addEventListener('touchend', function(e) {
+        if (e.changedTouches.length === 1) {
+            const deltaX = e.changedTouches[0].clientX - touchStartX;
+            const deltaY = e.changedTouches[0].clientY - touchStartY;
+
+            // Trigger tab switch if horizontal swipe > 40px and horizontal movement is dominant
+            if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+                if (deltaX < 0) {
+                    switchToNextTab();
+                } else {
+                    switchToPrevTab();
+                }
+            }
+        }
+    }, { passive: true });
+}
+
+// Initialize tabs on DOM content loaded
+$(document).ready(function() {
+    loadSavedCustomTabs();
+    renderTabs();
+    setupMobileTabSwiping();
+});
+

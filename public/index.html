@@ -20,8 +20,20 @@
     <script src="https://player.twitch.tv/js/embed/v1.js"></script>
 </head>
 <body>
-    <div class="head">
-        <h1>Combined Chat Reader</h1>
+    <!-- Top Browser Tab Bar Header -->
+    <div id="browserTabBarContainer">
+        <div class="browser-tab active" id="tab-main" onclick="switchToTab('main')">
+            <span class="tab-icon">💬</span>
+            <span class="tab-title-text">Chat Reader</span>
+        </div>
+        <div id="customTabsList" style="display: flex; gap: 4px;"></div>
+        <button id="addTabBtn" onclick="openAddPageModal()" title="Add Custom Website Page">+</button>
+    </div>
+
+    <!-- Main Dashboard View Container -->
+    <div id="mainDashboardView">
+        <div class="head">
+            <h1>Combined Chat Reader</h1>
         <div id="liveStatusContainer" style="display:flex;align-items:center;justify-content:center;gap:18px;margin-top:10px;">
             <div id="tiktokLiveStatus" style="display:flex;align-items:center;gap:6px;">
                 <span class="live-dot" id="tiktokDot"></span>
@@ -410,6 +422,33 @@
             </td>
         </tr>
     </table>
+    </div> <!-- End mainDashboardView -->
+
+    <!-- Container for User-Added Custom Website Views -->
+    <div id="customViewsContainer"></div>
+
+    <!-- Modal for Adding Custom Page -->
+    <div id="addPageModalOverlay" class="tab-modal-overlay" style="display: none;" onclick="if(event.target===this) closeAddPageModal()">
+        <div class="tab-modal-card">
+            <div class="tab-modal-header">
+                <h3><span>🌐</span> Add Custom Website Page</h3>
+                <button class="tab-modal-close" onclick="closeAddPageModal()">✕</button>
+            </div>
+            <div class="tab-modal-body">
+                <p style="margin: 0 0 14px 0; font-size: 0.88em; color: #a0a5ba; line-height: 1.4;">Enter a title and website URL. Once added, the website will load with the Chat Reader active at the bottom.</p>
+                <label for="newTabTitle">Page Title</label>
+                <input type="text" id="newTabTitle" placeholder="e.g. Kick Stream, YouTube, Twitch" autocomplete="off">
+                
+                <label for="newTabUrl">Website URL</label>
+                <input type="url" id="newTabUrl" placeholder="https://example.com" autocomplete="off" onkeypress="if(event.key==='Enter') saveNewTab()">
+            </div>
+            <div class="tab-modal-footer">
+                <button class="tab-btn-secondary" onclick="closeAddPageModal()">Cancel</button>
+                <button class="tab-btn-primary" onclick="saveNewTab()">Done</button>
+            </div>
+        </div>
+    </div>
+
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const handle = document.getElementById('chatResizeHandle');

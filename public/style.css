@@ -1068,4 +1068,399 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     }
 }
 
+/* ==========================================================================
+   Browser Tab Bar & Embedded Web View Styles
+   ========================================================================== */
+#browserTabBarContainer {
+    background: #111218;
+    border-bottom: 1px solid #2a2d3d;
+    padding: 6px 10px 0 10px;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    scrollbar-width: none; /* Hide scrollbar for clean app feel on mobile */
+    user-select: none;
+    position: sticky;
+    top: 0;
+    z-index: 900;
+}
+
+#browserTabBarContainer::-webkit-scrollbar {
+    display: none;
+}
+
+.browser-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1e202a;
+    color: #9aa0b4;
+    padding: 9px 15px;
+    border-radius: 10px 10px 0 0;
+    font-size: 0.88em;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition: all 0.2s ease;
+    max-width: 220px;
+    min-width: 100px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    white-space: nowrap;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.browser-tab:hover {
+    background: #272a38;
+    color: #e3e5eb;
+}
+
+.browser-tab.active {
+    background: #181a20;
+    color: #58a6ff;
+    font-weight: 600;
+    border-color: #383b4e;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+}
+
+.browser-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #181a20;
+}
+
+.tab-icon {
+    font-size: 1.1em;
+    flex-shrink: 0;
+}
+
+.tab-title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.tab-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 12px;
+    line-height: 1;
+    color: #8a8f9e;
+    transition: all 0.15s ease;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+.tab-close-btn:hover {
+    background: #ff4d4d;
+    color: #ffffff;
+}
+
+#addTabBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: transparent;
+    color: #9aa0b4;
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 3px;
+    border: none;
+    flex-shrink: 0;
+}
+
+#addTabBtn:hover {
+    background: #292d3e;
+    color: #58a6ff;
+    transform: scale(1.08);
+}
+
+/* Modal Overlay & Dialog */
+.tab-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.tab-modal-card {
+    background: linear-gradient(145deg, #1e202d 0%, #171822 100%);
+    border: 1px solid #3d4157;
+    border-radius: 14px;
+    padding: 24px 28px;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6);
+    color: #e3e5eb;
+}
+
+.tab-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.tab-modal-header h3 {
+    margin: 0;
+    font-size: 1.25em;
+    color: #58a6ff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tab-modal-close {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 1.2em;
+    cursor: pointer;
+}
+.tab-modal-close:hover {
+    color: #fff;
+}
+
+.tab-modal-body label {
+    display: block;
+    font-size: 0.88em;
+    color: #a0a5ba;
+    margin-bottom: 6px;
+    margin-top: 12px;
+}
+
+.tab-modal-body input[type="text"],
+.tab-modal-body input[type="url"] {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #3a3d52;
+    background: #12131a;
+    color: #ffffff;
+    font-size: 0.95em;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.tab-modal-body input:focus {
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
+.tab-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 22px;
+}
+
+.tab-btn-secondary {
+    background: #2a2d3e;
+    color: #aaa;
+    border: 1px solid #444;
+    padding: 9px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.tab-btn-secondary:hover {
+    background: #36394f;
+    color: #fff;
+}
+
+.tab-btn-primary {
+    background: linear-gradient(90deg, #58a6ff, #9146FF);
+    color: white;
+    border: none;
+    padding: 9px 22px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.95em;
+    box-shadow: 0 2px 10px rgba(88, 166, 255, 0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.tab-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(88, 166, 255, 0.4);
+}
+
+/* Embedded Web View Layout */
+.custom-tab-container {
+    display: none;
+    flex-direction: column;
+    height: calc(100vh - 45px);
+    width: 100%;
+}
+
+.custom-tab-container.active {
+    display: flex;
+}
+
+.custom-web-toolbar {
+    background: #161822;
+    border-bottom: 1px solid #2a2d3d;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.custom-url-bar {
+    flex: 1;
+    background: #0e0f16;
+    border: 1px solid #2e3144;
+    border-radius: 20px;
+    padding: 6px 14px;
+    color: #8c92a6;
+    font-size: 0.85em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.custom-web-btn {
+    background: #252838;
+    color: #d0d4e4;
+    border: 1px solid #383c54;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.82em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+.custom-web-btn:hover {
+    background: #33374d;
+    color: #fff;
+}
+
+.custom-web-frame-wrapper {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    background: #000;
+    overflow: hidden;
+}
+
+.custom-web-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* Bottom Chat Reader Dock inside custom web tabs */
+.bottom-chat-dock {
+    height: 380px;
+    min-height: 180px;
+    max-height: 70vh;
+    background: #181a20;
+    border-top: 2px solid #383b4e;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+}
+
+/* Remove inner chat container cropping & inner handle when docked in custom tabs */
+#mainChatContainer.in-dock {
+    height: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+}
+
+#mainChatContainer.in-dock #chatResizeHandle {
+    display: none !important;
+}
+
+.dock-resize-handle {
+    height: 10px;
+    background: #12131a;
+    cursor: ns-resize;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid #2a2d3d;
+    user-select: none;
+}
+.dock-resize-handle div {
+    width: 40px;
+    height: 4px;
+    background: #4e526b;
+    border-radius: 2px;
+}
+
+.dock-header {
+    background: #14161f;
+    padding: 8px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #2a2d3d;
+}
+
+.dock-header h4 {
+    margin: 0;
+    font-size: 0.92em;
+    color: #58a6ff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dock-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dock-controls select, .dock-controls button {
+    background: #232636;
+    color: #e3e5eb;
+    border: 1px solid #383c54;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.82em;
+    cursor: pointer;
+}
+
+
 
