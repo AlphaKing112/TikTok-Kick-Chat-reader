@@ -3756,8 +3756,11 @@ function switchToTab(tabId) {
 
     if (tabId === 'main') {
         // Hide custom views, show main dashboard
-        document.getElementById('customViewsContainer').style.display = 'none';
-        document.getElementById('mainDashboardView').style.display = 'flex';
+        const cv = document.getElementById('customViewsContainer');
+        cv.style.cssText = 'display: none;';
+
+        const mdv = document.getElementById('mainDashboardView');
+        mdv.style.cssText = 'display: flex; flex-direction: column; position: fixed; top: 45px; left: 0; right: 0; bottom: 0; width: 100%; overflow: hidden; background: #181a20;';
 
         // Move chat back to main dock
         const mainDockContent = document.getElementById('mainChatDockContent');
@@ -3766,9 +3769,11 @@ function switchToTab(tabId) {
         }
     } else {
         // Hide main dashboard, show custom views container
-        document.getElementById('mainDashboardView').style.display = 'none';
-        document.getElementById('customViewsContainer').style.display = 'flex';
-        document.getElementById('customViewsContainer').style.flexDirection = 'column';
+        const mdv = document.getElementById('mainDashboardView');
+        mdv.style.cssText = 'display: none;';
+
+        const cv = document.getElementById('customViewsContainer');
+        cv.style.cssText = 'display: flex; flex-direction: column; position: fixed; top: 45px; left: 0; right: 0; bottom: 0; width: 100%; height: calc(100vh - 45px); overflow: hidden; background: #181a20;';
 
         // Ensure the tab view exists
         if (!document.getElementById(`tab_view_${tabId}`)) {
@@ -3777,12 +3782,11 @@ function switchToTab(tabId) {
 
         // Hide ALL tab views, then show only the active one
         document.querySelectorAll('.custom-tab-container').forEach(el => {
-            el.style.display = 'none';
+            el.style.cssText = 'display: none;';
         });
         const viewElem = document.getElementById(`tab_view_${tabId}`);
         if (viewElem) {
-            viewElem.style.display = 'flex';
-            viewElem.style.flexDirection = 'column';
+            viewElem.style.cssText = 'display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden;';
         }
 
         // Move chat into the active tab's dock
