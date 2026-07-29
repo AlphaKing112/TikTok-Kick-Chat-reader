@@ -1340,7 +1340,7 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 #customViewsContainer {
     width: 100%;
     height: calc(100vh - 45px);
-    display: flex;
+    display: none;
     flex-direction: column;
 }
 

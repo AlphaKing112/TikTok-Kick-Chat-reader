@@ -3750,6 +3750,7 @@ function switchToTab(tabId) {
     // Toggle views
     if (tabId === 'main') {
         $('.custom-tab-container').removeClass('active');
+        $('#customViewsContainer').hide();
         $('#mainDashboardView').css('display', 'flex');
 
         // Ensure main chat container is in the main chat dock content container
@@ -3759,6 +3760,7 @@ function switchToTab(tabId) {
         }
     } else {
         $('#mainDashboardView').hide();
+        $('#customViewsContainer').css('display', 'flex');
         $('.custom-tab-container').removeClass('active');
 
         let viewElem = $(`#tab_view_${tabId}`);
