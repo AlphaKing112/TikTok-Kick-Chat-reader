@@ -3697,7 +3697,6 @@ function removeTab(tabId, event) {
         event.preventDefault();
     }
 
-    // Safely preserve #mainChatContainer if it is currently hosted inside this tab view
     const mainChat = $('#mainChatContainer');
     const tabView = $(`#tab_view_${tabId}`);
     if (mainChat.length && tabView.length && $.contains(tabView[0], mainChat[0])) {
@@ -3738,7 +3737,6 @@ function switchToPrevTab() {
 function switchToTab(tabId) {
     activeTabId = tabId;
 
-    // Update tab bar active highlights
     $('.browser-tab').removeClass('active');
     if (tabId === 'main') {
         $('#tab-main').addClass('active');
@@ -3746,7 +3744,6 @@ function switchToTab(tabId) {
         $(`#tab_header_${tabId}`).addClass('active');
     }
 
-    // Auto-scroll active tab into view
     const activeElem = document.getElementById(tabId === 'main' ? 'tab-main' : `tab_header_${tabId}`);
     if (activeElem && typeof activeElem.scrollIntoView === 'function') {
         activeElem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -3799,8 +3796,8 @@ function initMainDockResize(e) {
         const deltaY = startY - currentY;
         const newHeight = startHeight + deltaY;
 
-        if (newHeight > 100 && newHeight < window.innerHeight * 0.88) {
-            dock.style.height = newHeight + 'px';
+        if (newHeight > 80 && newHeight < window.innerHeight * 0.90) {
+            dock.style.setProperty('height', newHeight + 'px', 'important');
         }
 
         if (moveEvent.type.includes('touch') && moveEvent.cancelable) {
@@ -3860,11 +3857,9 @@ function renderTabs() {
 
     if (!tabsListContainer.length) return;
 
-    // Clear existing dynamic tab headers
     tabsListContainer.empty();
 
     customTabs.forEach(tab => {
-        // Tab Header
         const isActive = activeTabId === tab.id;
         const tabHeader = $(`
             <div class="browser-tab ${isActive ? 'active' : ''}" id="tab_header_${tab.id}" onclick="switchToTab('${tab.id}')" title="${tab.title} (${tab.url})">
@@ -3875,11 +3870,9 @@ function renderTabs() {
         `);
         tabsListContainer.append(tabHeader);
 
-        // Tab View Container
         if (!$(`#tab_view_${tab.id}`).length) {
             const tabView = $(`
                 <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}">
-                    <!-- Top Toolbar -->
                     <div class="custom-web-toolbar" style="z-index: 10; position: relative;">
                         <button class="custom-web-btn" onclick="reloadTabIframe('${tab.id}')" title="Reload page">🔄</button>
                         <div class="custom-url-bar">
@@ -3889,12 +3882,10 @@ function renderTabs() {
                         <button class="custom-web-btn" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: #fff; font-weight: bold; border: none; box-shadow: 0 2px 6px rgba(88,166,255,0.3);" onclick="openTabExternal('${escapeHtml(tab.url)}')" title="Open in new window or mobile browser">↗ Open Site</button>
                     </div>
 
-                    <!-- Embedded Website Iframe -->
                     <div class="custom-web-frame-wrapper" style="flex: 1; min-height: 0;">
                         <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${getTabIframeSrc(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
                     </div>
 
-                    <!-- Bottom Chat Reader Dock -->
                     <div class="bottom-chat-dock" id="chatDock_${tab.id}" style="z-index: 10;">
                         <div class="dock-resize-handle" onmousedown="initDockResize(event, '${tab.id}')" ontouchstart="initDockResize(event, '${tab.id}')" title="Drag up or down to resize chat">
                             <div></div>
@@ -3907,11 +3898,11 @@ function renderTabs() {
         }
     });
 
-    // If active tab was a custom tab, ensure its dock contains mainChatContainer
+    const mainChat = $('#mainChatContainer');
     if (activeTabId !== 'main') {
         const activeDock = $(`#chatDockContent_${activeTabId}`);
         if (activeDock.length && mainChat.length && !$.contains(activeDock[0], mainChat[0])) {
-            activeDock.append($('#mainChatContainer'));
+            activeDock.append(mainChat);
         }
     }
 }
@@ -3940,8 +3931,8 @@ function initDockResize(e, tabId) {
         const deltaY = startY - currentY;
         const newHeight = startHeight + deltaY;
 
-        if (newHeight > 150 && newHeight < window.innerHeight * 0.85) {
-            dock.style.height = newHeight + 'px';
+        if (newHeight > 80 && newHeight < window.innerHeight * 0.90) {
+            dock.style.setProperty('height', newHeight + 'px', 'important');
         }
 
         if (moveEvent.type.includes('touch') && moveEvent.cancelable) {
@@ -3986,7 +3977,6 @@ function setupMobileTabSwiping() {
             const deltaX = e.changedTouches[0].clientX - touchStartX;
             const deltaY = e.changedTouches[0].clientY - touchStartY;
 
-            // Trigger tab switch if horizontal swipe > 40px and horizontal movement is dominant
             if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
                 if (deltaX < 0) {
                     switchToNextTab();
@@ -4006,4 +3996,5 @@ $(document).ready(function() {
     switchToTab('main');
     setupMobileTabSwiping();
 });
+
 

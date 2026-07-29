@@ -1474,11 +1474,11 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     }
 
     #mainDashboardBottomDock {
-        height: 48vh !important;
-        height: 48dvh !important;
-        min-height: 200px !important;
-        max-height: 65vh !important;
-        flex-shrink: 0 !important;
+        height: 48vh;
+        height: 48dvh;
+        min-height: 100px;
+        max-height: 85vh;
+        flex-shrink: 0;
         display: flex !important;
         flex-direction: column !important;
     }
