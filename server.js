@@ -142,7 +142,8 @@ app.use(express.json());
 // === Universal Un-Framing Proxy ===
 const handleUnframeProxy = async (req, res) => {
     try {
-        let targetUrl = req.query.url || 'https://streamelements.com/';
+        let targetUrl = req.query.url;
+        if (!targetUrl) return res.status(400).send('Missing target URL parameter (?url=)');
         if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
 
         const response = await axios.get(targetUrl, {
@@ -237,15 +238,6 @@ const handleUnframeProxy = async (req, res) => {
 
 app.get('/api/streamelements-proxy', handleUnframeProxy);
 app.get('/api/unframe-proxy', handleUnframeProxy);
-
-// Dynamic module JS asset fallback route to catch relative imports requesting /api/*.js directly
-app.get('/api/*.js', async (req, res) => {
-    const filename = req.path.split('/').pop();
-    if (!filename || filename === 'server.js') return res.status(404).send('Not found');
-    const targetUrl = `https://streamelements.com/assets/dashboard/${filename}`;
-    const protocol = (req.headers['x-forwarded-proto'] || req.protocol).split(',')[0].trim();
-    return res.redirect(`${protocol}://${req.get('host')}/api/proxy-asset?url=${encodeURIComponent(targetUrl)}`);
-});
 
 app.get('/api/proxy-asset', async (req, res) => {
     try {

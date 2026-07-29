@@ -3844,11 +3844,7 @@ function openTabExternal(url) {
 
 function getTabIframeSrc(rawUrl) {
     if (!rawUrl) return '';
-    const url = rawUrl.trim();
-    if (url.includes('streamelements.com') && !url.includes('overlay') && !url.includes('popout') && !url.includes('widget')) {
-        return '/api/streamelements-proxy?url=' + encodeURIComponent(url);
-    }
-    return url;
+    return rawUrl.trim();
 }
 
 function renderTabs() {
