@@ -163,10 +163,43 @@ app.use('/proxy-site', (req, res, next) => {
             delete headers['Content-Security-Policy'];
             delete headers['frame-options'];
             return headers;
+        },
+        userResDecorator: (proxyRes, proxyResData, userReq, userRes) => {
+            const contentType = proxyRes.headers['content-type'] || '';
+            if (contentType.includes('text/html')) {
+                let html = proxyResData.toString('utf8');
+                const baseTag = `<base href="${targetHost}/">`;
+                if (/<head[^>]*>/i.test(html)) {
+                    html = html.replace(/(<head[^>]*>)/i, `$1\n${baseTag}`);
+                } else {
+                    html = baseTag + html;
+                }
+                return html;
+            }
+            return proxyResData;
         }
     });
 
     proxyHandler(req, res, next);
+});
+
+// Fallback asset proxy for relative paths (e.g., /assets/*, /static/*, /cdn-cgi/*, /zaraz/*) requested by proxied tabs
+app.use(['/assets/*', '/static/*', '/cdn-cgi/*', '/zaraz/*'], (req, res, next) => {
+    const referer = req.headers.referer || '';
+    if (referer.includes('/proxy-site?url=')) {
+        try {
+            const urlMatch = referer.match(/[\?&]url=([^&]+)/);
+            if (urlMatch) {
+                const targetUrl = decodeURIComponent(urlMatch[1]);
+                const parsed = new URL(targetUrl);
+                const assetProxy = proxy(parsed.origin, {
+                    proxyReqPathResolver: (r) => r.originalUrl
+                });
+                return assetProxy(req, res, next);
+            }
+        } catch (e) {}
+    }
+    next();
 });
 
 
