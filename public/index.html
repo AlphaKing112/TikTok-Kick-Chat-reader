@@ -9,14 +9,14 @@
     <meta name="description" content="A chat reader for TikTok LIVE utilizing TikTok-Live-Connector and Socket.IO to forward the data to the client. This demo project uses the unofficial TikTok API to retrieve chat comments, gifts and other events from TikTok LIVE.">
     <meta name="keywords" content="TikTok,Live,Livestream,Chat,Reader,Scraper,Tracker,tiktok.com,broadcast,api,library,node,node.js,javascript">
 
-    <link rel="stylesheet" href="style.css?v=22">
+    <link rel="stylesheet" href="style.css?v=23">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <script src="connection.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
-    <script src="app.js?v=22"></script>
+    <script src="app.js?v=23"></script>
     <script src="https://player.twitch.tv/js/embed/v1.js"></script>
 </head>
 <body>
@@ -435,12 +435,12 @@
                 <button class="tab-modal-close" onclick="closeAddPageModal()">✕</button>
             </div>
             <div class="tab-modal-body">
-                <p style="margin: 0 0 14px 0; font-size: 0.88em; color: #a0a5ba; line-height: 1.4;">Enter a title and website URL. Once added, the website will load with the Chat Reader active at the bottom.</p>
+                <p style="margin: 0 0 14px 0; font-size: 0.88em; color: #a0a5ba; line-height: 1.4;">Enter a title and website URL. For StreamElements, use your <b>Popout Activity Feed URL</b> (e.g. <code>https://streamelements.com/dashboard/ID/activity/popout</code>) or Overlay URL.</p>
                 <label for="newTabTitle">Page Title</label>
-                <input type="text" id="newTabTitle" placeholder="e.g. Kick Stream, YouTube, Twitch" autocomplete="off">
+                <input type="text" id="newTabTitle" placeholder="e.g. StreamElements Feed, Kick Stream, YouTube" autocomplete="off">
                 
                 <label for="newTabUrl">Website URL</label>
-                <input type="url" id="newTabUrl" placeholder="https://example.com" autocomplete="off" onkeypress="if(event.key==='Enter') saveNewTab()">
+                <input type="url" id="newTabUrl" placeholder="https://streamelements.com/dashboard/.../activity/popout" autocomplete="off" onkeypress="if(event.key==='Enter') saveNewTab()">
             </div>
             <div class="tab-modal-footer">
                 <button class="tab-btn-secondary" onclick="closeAddPageModal()">Cancel</button>
