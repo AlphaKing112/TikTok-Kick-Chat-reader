@@ -3697,11 +3697,18 @@ function removeTab(tabId, event) {
         event.preventDefault();
     }
 
+    // Safely preserve #mainChatContainer if it is currently hosted inside this tab view
+    const mainChat = $('#mainChatContainer');
+    const tabView = $(`#tab_view_${tabId}`);
+    if (mainChat.length && tabView.length && $.contains(tabView[0], mainChat[0])) {
+        $('#mainChatDockContent').append(mainChat);
+    }
+
     customTabs = customTabs.filter(t => t.id !== tabId);
     saveCustomTabsToStorage();
 
     $(`#tab_header_${tabId}`).remove();
-    $(`#tab_view_${tabId}`).remove();
+    tabView.remove();
 
     if (activeTabId === tabId) {
         switchToTab('main');
