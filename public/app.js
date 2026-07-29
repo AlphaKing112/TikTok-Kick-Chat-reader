@@ -3831,7 +3831,8 @@ function reloadTabIframe(tabId) {
     if (iframe.length) {
         const tab = customTabs.find(t => t.id === tabId);
         if (tab) {
-            iframe.attr('src', getTabIframeSrc(tab.url, tab.useProxy));
+            const isProxyOn = (typeof tab.useProxy !== 'undefined') ? !!tab.useProxy : shouldAutoUseProxy(tab.url);
+            iframe.attr('src', getTabIframeSrc(tab.url, isProxyOn));
         } else {
             const src = iframe.attr('src');
             iframe.attr('src', src);
@@ -3858,7 +3859,7 @@ function toggleTabProxy(tabId) {
     const tab = customTabs.find(t => t.id === tabId);
     if (!tab) return;
 
-    tab.useProxy = !tab.useProxy;
+    tab.useProxy = (typeof tab.useProxy !== 'undefined') ? !tab.useProxy : !shouldAutoUseProxy(tab.url);
     saveCustomTabsToStorage();
 
     const iframe = $(`#iframe_${tabId}`);
@@ -3897,7 +3898,7 @@ function renderTabs() {
 
         // Tab View Container
         if (!$(`#tab_view_${tab.id}`).length) {
-            const isProxyOn = !!tab.useProxy;
+            const isProxyOn = (typeof tab.useProxy !== 'undefined') ? !!tab.useProxy : shouldAutoUseProxy(tab.url);
             const tabView = $(`
                 <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}">
                     <!-- Top Toolbar -->
