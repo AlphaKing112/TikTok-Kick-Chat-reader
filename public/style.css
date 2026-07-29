@@ -1416,21 +1416,32 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     display: none !important;
 }
 
-.dock-resize-handle {
-    height: 10px;
-    background: #12131a;
-    cursor: ns-resize;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-bottom: 1px solid #2a2d3d;
-    user-select: none;
+.dock-resize-handle, #chatResizeHandle {
+    height: 18px !important;
+    min-height: 18px !important;
+    background: #141620 !important;
+    cursor: ns-resize !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    border-bottom: 1px solid #2a2d3d !important;
+    user-select: none !important;
+    touch-action: none !important;
+    -webkit-tap-highlight-color: transparent !important;
 }
-.dock-resize-handle div {
-    width: 40px;
-    height: 4px;
-    background: #4e526b;
-    border-radius: 2px;
+
+.dock-resize-handle div, #chatResizeHandle div {
+    width: 54px !important;
+    height: 5px !important;
+    background: #6a6e87 !important;
+    border-radius: 3px !important;
+    transition: background 0.2s, width 0.2s !important;
+}
+
+.dock-resize-handle:hover div, .dock-resize-handle:active div,
+#chatResizeHandle:hover div, #chatResizeHandle:active div {
+    background: #58a6ff !important;
+    width: 65px !important;
 }
 
 .dock-header {

@@ -479,12 +479,20 @@
             if (!isResizing) return;
             const currentY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
             const deltaY = startY - currentY;
-            const newHeight = startHeight + deltaY;
-            
-            if (newHeight > 150 && newHeight < window.innerHeight * 0.85) {
+            let newHeight = startHeight + deltaY;
+
+            // Constrain height so the bottom of the container stays within the visible screen area
+            const topPos = container.getBoundingClientRect().top;
+            const maxAvailableHeight = Math.max(180, window.innerHeight - topPos - 16);
+            const maxHeight = Math.min(window.innerHeight * 0.85, maxAvailableHeight);
+
+            if (newHeight > 150) {
+                if (newHeight > maxHeight) {
+                    newHeight = maxHeight;
+                }
                 container.style.height = newHeight + 'px';
             }
-            
+
             if (e.type.includes('touch') && e.cancelable) {
                 e.preventDefault(); // Prevent mobile scrolling while resizing
             }
