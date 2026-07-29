@@ -3829,66 +3829,14 @@ function initMainDockResize(e) {
 function reloadTabIframe(tabId) {
     const iframe = $(`#iframe_${tabId}`);
     if (iframe.length) {
-        const tab = customTabs.find(t => t.id === tabId);
-        if (tab) {
-            iframe.attr('src', getTabIframeSrc(tab.url, tab.useProxy));
-        } else {
-            const src = iframe.attr('src');
-            iframe.attr('src', src);
-        }
+        const src = iframe.attr('src');
+        iframe.attr('src', src);
     }
 }
 
 function openTabExternal(url) {
     if (url) {
         window.open(url, '_blank');
-    }
-}
-
-function shouldAutoUseProxy(rawUrl) {
-    if (!rawUrl) return false;
-    const url = rawUrl.trim().toLowerCase();
-    if (url.includes('localhost') || url.includes('127.0.0.1') || url.startsWith('/')) {
-        return false;
-    }
-    // Main domain homepages known to set X-Frame-Options
-    if (/^https?:\/\/(www\.)?(streamelements\.com\/?|instagram\.com\/?|tiktok\.com\/?|facebook\.com\/?)$/i.test(url)) {
-        return true;
-    }
-    return false;
-}
-
-function getTabIframeSrc(rawUrl, useProxy) {
-    if (!rawUrl) return '';
-    const trimmed = rawUrl.trim();
-    const isProxyNeeded = (typeof useProxy === 'boolean') ? useProxy : shouldAutoUseProxy(trimmed);
-    if (isProxyNeeded) {
-        return '/api/proxy-view?url=' + encodeURIComponent(trimmed);
-    }
-    return trimmed;
-}
-
-function toggleTabProxy(tabId) {
-    const tab = customTabs.find(t => t.id === tabId);
-    if (!tab) return;
-
-    if (typeof tab.useProxy === 'boolean') {
-        tab.useProxy = !tab.useProxy;
-    } else {
-        tab.useProxy = !shouldAutoUseProxy(tab.url);
-    }
-    saveCustomTabsToStorage();
-
-    const iframe = $(`#iframe_${tabId}`);
-    if (iframe.length) {
-        iframe.attr('src', getTabIframeSrc(tab.url, tab.useProxy));
-    }
-
-    const btn = $(`#proxy_btn_${tabId}`);
-    if (btn.length) {
-        btn.html(tab.useProxy ? '⚡ Proxy: ON' : '⚡ Proxy: OFF');
-        btn.css('background', tab.useProxy ? 'linear-gradient(90deg, #1db954, #128c39)' : '#252838');
-        btn.css('color', '#ffffff');
     }
 }
 
@@ -3915,13 +3863,11 @@ function renderTabs() {
 
         // Tab View Container
         if (!$(`#tab_view_${tab.id}`).length) {
-            const isProxyOn = (typeof tab.useProxy === 'boolean') ? tab.useProxy : shouldAutoUseProxy(tab.url);
             const tabView = $(`
                 <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}">
                     <!-- Top Toolbar -->
                     <div class="custom-web-toolbar" style="z-index: 10; position: relative;">
                         <button class="custom-web-btn" onclick="reloadTabIframe('${tab.id}')" title="Reload page">🔄</button>
-                        <button class="custom-web-btn" id="proxy_btn_${tab.id}" onclick="toggleTabProxy('${tab.id}')" style="background: ${isProxyOn ? 'linear-gradient(90deg, #1db954, #128c39)' : '#252838'}; color: #ffffff;" title="Toggle Server Proxy Mode to bypass X-Frame-Options embedding restriction">⚡ Proxy: ${isProxyOn ? 'ON' : 'OFF'}</button>
                         <div class="custom-url-bar">
                             <span style="font-size: 0.9em;">🔒</span>
                             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(tab.url)}</span>
@@ -3931,7 +3877,7 @@ function renderTabs() {
 
                     <!-- Embedded Website Iframe -->
                     <div class="custom-web-frame-wrapper">
-                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${getTabIframeSrc(tab.url, isProxyOn)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
+                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${escapeHtml(tab.url)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
                     </div>
 
                     <!-- Bottom Chat Reader Dock -->
