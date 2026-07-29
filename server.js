@@ -156,14 +156,15 @@ app.get('/api/streamelements-proxy', async (req, res) => {
         let html = response.data;
         if (typeof html === 'string') {
             const origin = new URL(targetUrl).origin;
+            const localProxyPrefix = `${req.protocol}://${req.get('host')}/api/proxy-asset?url=`;
             
-            // Rewrite asset URLs to proxy through /api/proxy-asset to bypass CORS
-            html = html.replace(/src="https:\/\/streamelements\.com\//g, 'src="/api/proxy-asset?url=https://streamelements.com/');
-            html = html.replace(/href="https:\/\/streamelements\.com\//g, 'href="/api/proxy-asset?url=https://streamelements.com/');
-            html = html.replace(/src="\.\/assets\//g, 'src="/api/proxy-asset?url=https://streamelements.com/assets/');
-            html = html.replace(/href="\.\/assets\//g, 'href="/api/proxy-asset?url=https://streamelements.com/assets/');
-            html = html.replace(/src="\/assets\//g, 'src="/api/proxy-asset?url=https://streamelements.com/assets/');
-            html = html.replace(/href="\/assets\//g, 'href="/api/proxy-asset?url=https://streamelements.com/assets/');
+            // Rewrite asset URLs to point explicitly to local server /api/proxy-asset endpoint
+            html = html.replace(/src="https:\/\/streamelements\.com\//g, `src="${localProxyPrefix}https://streamelements.com/`);
+            html = html.replace(/href="https:\/\/streamelements\.com\//g, `href="${localProxyPrefix}https://streamelements.com/`);
+            html = html.replace(/src="\.\/assets\//g, `src="${localProxyPrefix}https://streamelements.com/assets/`);
+            html = html.replace(/href="\.\/assets\//g, `href="${localProxyPrefix}https://streamelements.com/assets/`);
+            html = html.replace(/src="\/assets\//g, `src="${localProxyPrefix}https://streamelements.com/assets/`);
+            html = html.replace(/href="\/assets\//g, `href="${localProxyPrefix}https://streamelements.com/assets/`);
 
             const baseTag = `<base href="${origin}/">`;
             if (/<head[^>]*>/i.test(html)) {
