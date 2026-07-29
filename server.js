@@ -9,6 +9,7 @@ const proxy = require('express-http-proxy');
 const { createServer } = require('http');
 const fs = require('fs');
 const path = require('path');
+const cheerio = require('cheerio');
 // === Twitch Avatar Fetching ===
 const twitchAvatarCache = new Map();
 const pendingAvatarRequests = new Map();
@@ -138,8 +139,8 @@ app.use(express.static('public', {
 }));
 app.use(express.json());
 
-// === StreamElements Un-Framing Proxy ===
-app.get('/api/streamelements-proxy', async (req, res) => {
+// === Universal Un-Framing Proxy ===
+const handleUnframeProxy = async (req, res) => {
     try {
         let targetUrl = req.query.url || 'https://streamelements.com/';
         if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
@@ -159,21 +160,50 @@ app.get('/api/streamelements-proxy', async (req, res) => {
             const origin = new URL(targetUrl).origin;
             const protocol = (req.headers['x-forwarded-proto'] || req.protocol).split(',')[0].trim();
             const localProxyPrefix = `${protocol}://${req.get('host')}/api/proxy-asset?url=`;
-            
-            // Rewrite asset URLs to point explicitly to local server /api/proxy-asset endpoint
-            html = html.replace(/(src|href)="https:\/\/streamelements\.com\//g, `$1="${localProxyPrefix}https://streamelements.com/`);
-            html = html.replace(/(src|href)='https:\/\/streamelements\.com\//g, `$1='${localProxyPrefix}https://streamelements.com/`);
-            html = html.replace(/(src|href)="\.\/assets\//g, `$1="${localProxyPrefix}https://streamelements.com/assets/`);
-            html = html.replace(/(src|href)='\.\/assets\//g, `$1='${localProxyPrefix}https://streamelements.com/assets/`);
-            html = html.replace(/(src|href)="\/assets\//g, `$1="${localProxyPrefix}https://streamelements.com/assets/`);
-            html = html.replace(/(src|href)='\/assets\//g, `$1='${localProxyPrefix}https://streamelements.com/assets/`);
 
-            const baseTag = `<base href="${origin}/">`;
-            if (/<head[^>]*>/i.test(html)) {
-                html = html.replace(/(<head[^>]*>)/i, `$1\n${baseTag}`);
+            const $ = cheerio.load(html);
+
+            // Prepend base tag so relative URLs resolve against target origin
+            if ($('head').length) {
+                $('head').prepend(`<base href="${origin}/">`);
             } else {
-                html = baseTag + html;
+                $.root().prepend(`<base href="${origin}/">`);
             }
+
+            // Rewrite stylesheet links
+            $('link[rel="stylesheet"], link[rel="style"], link[rel="preload"][as="style"]').each((_, el) => {
+                const href = $(el).attr('href');
+                if (href && !href.startsWith('data:')) {
+                    try {
+                        const absUrl = new URL(href, targetUrl).href;
+                        $(el).attr('href', localProxyPrefix + encodeURIComponent(absUrl));
+                    } catch (e) {}
+                }
+            });
+
+            // Rewrite script tags
+            $('script[src]').each((_, el) => {
+                const src = $(el).attr('src');
+                if (src && !src.startsWith('data:')) {
+                    try {
+                        const absUrl = new URL(src, targetUrl).href;
+                        $(el).attr('src', localProxyPrefix + encodeURIComponent(absUrl));
+                    } catch (e) {}
+                }
+            });
+
+            // Rewrite image sources
+            $('img[src]').each((_, el) => {
+                const src = $(el).attr('src');
+                if (src && !src.startsWith('data:')) {
+                    try {
+                        const absUrl = new URL(src, targetUrl).href;
+                        $(el).attr('src', localProxyPrefix + encodeURIComponent(absUrl));
+                    } catch (e) {}
+                }
+            });
+
+            html = $.html();
         }
 
         res.removeHeader('X-Frame-Options');
@@ -183,7 +213,10 @@ app.get('/api/streamelements-proxy', async (req, res) => {
     } catch (e) {
         res.status(500).send('Proxy Error: ' + e.message);
     }
-});
+};
+
+app.get('/api/streamelements-proxy', handleUnframeProxy);
+app.get('/api/unframe-proxy', handleUnframeProxy);
 
 app.get('/api/proxy-asset', async (req, res) => {
     try {
