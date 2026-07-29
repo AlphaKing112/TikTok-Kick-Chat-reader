@@ -3860,7 +3860,7 @@ function renderTabs() {
             const tabView = $(`
                 <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}">
                     <!-- Top Toolbar -->
-                    <div class="custom-web-toolbar">
+                    <div class="custom-web-toolbar" style="z-index: 10; position: relative;">
                         <button class="custom-web-btn" onclick="reloadTabIframe('${tab.id}')" title="Reload page">🔄</button>
                         <div class="custom-url-bar">
                             <span style="font-size: 0.9em;">🔒</span>
@@ -3881,7 +3881,7 @@ function renderTabs() {
                     </div>
 
                     <!-- Bottom Chat Reader Dock -->
-                    <div class="bottom-chat-dock" id="chatDock_${tab.id}">
+                    <div class="bottom-chat-dock" id="chatDock_${tab.id}" style="z-index: 10;">
                         <div class="dock-resize-handle" onmousedown="initDockResize(event, '${tab.id}')" ontouchstart="initDockResize(event, '${tab.id}')">
                             <div></div>
                         </div>
