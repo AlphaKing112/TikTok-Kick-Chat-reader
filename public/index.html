@@ -648,8 +648,8 @@ function copyOverlayUrl() {
         </div>
         <button onclick="addPollOptionRow()" style="background: transparent; color: #58a6ff; border: 1px dashed #58a6ff; width: 100%; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.85em; margin-bottom: 15px;">+ Add Option</button>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <div style="flex: 1;">
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 120px;">
                 <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px; font-weight: bold;">ALLOW VOTES FROM</label>
                 <select id="pollPlatformSelect" style="width: 100%; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px;">
                     <option value="all">🌐 All Platforms</option>
@@ -658,13 +658,26 @@ function copyOverlayUrl() {
                     <option value="tiktok">🎵 TikTok Only</option>
                 </select>
             </div>
-            <div style="flex: 1;">
+            <div style="flex: 1; min-width: 120px;">
                 <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px; font-weight: bold;">DURATION</label>
                 <select id="pollDurationSelect" style="width: 100%; background: #0e0e14; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px;">
                     <option value="60">1 Minute (60s)</option>
                     <option value="120">2 Minutes (120s)</option>
                     <option value="300">5 Minutes (300s)</option>
                     <option value="0">No Limit (Manual)</option>
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 120px;">
+                <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 12px; font-weight: bold;">OVERLAY FONT</label>
+                <select id="pollFontSelect" style="width: 100%; background: #0e0e14; border: 1px solid #444; color: #ffaa00; font-weight: bold; padding: 8px; border-radius: 6px;">
+                    <option value="Press Start 2P" selected>👾 Press Start 2P (8-Bit)</option>
+                    <option value="Pixelify Sans">🎮 Pixelify Sans (Modern Pixel)</option>
+                    <option value="Outfit">✨ Outfit (Modern Stream)</option>
+                    <option value="Bebas Neue">🔥 Bebas Neue (Esports / Bold)</option>
+                    <option value="Poppins">🟣 Poppins (Geometric)</option>
+                    <option value="Luckiest Guy">🎯 Luckiest Guy (Playful Cartoon)</option>
+                    <option value="VT323">💻 VT323 (Retro CRT Terminal)</option>
+                    <option value="Roboto">⚡ Roboto (Clean Standard)</option>
                 </select>
             </div>
         </div>

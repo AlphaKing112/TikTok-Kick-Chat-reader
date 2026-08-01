@@ -3510,7 +3510,8 @@ window.resetPollFields = function() {
 
 window.copyPollOverlayUrl = function() {
     const origin = window.location.origin;
-    const pollUrl = `${origin}/poll.html`;
+    const font = $('#pollFontSelect').val() || 'Press Start 2P';
+    const pollUrl = `${origin}/poll.html?font=${encodeURIComponent(font)}`;
     navigator.clipboard.writeText(pollUrl).then(() => {
         showNotification('📋 Poll Overlay URL copied to clipboard: ' + pollUrl, 'success');
     }).catch(() => {
