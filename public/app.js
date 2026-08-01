@@ -734,6 +734,8 @@ $(document).ready(() => {
                         $('#twitchUserInfo').show();
                         $('#twitchAuthButton').hide();
                         $('#twitchUnauthButton').show();
+                        $('#twitchAdTracker').css('background', 'rgba(145, 70, 255, 0.25)').css('color', '#a970ff').show();
+                        $('#twitchAdStatus').html('Ads: <span style="color:#53fc18; font-weight:bold;">Authorized ✓</span>');
                         if (!window.currentTwitchRoomId && typeof currentTwitchChannelName !== 'undefined' && currentTwitchChannelName) {
                             window.connection.socket.emit('setTwitchChannel', currentTwitchChannelName);
                         }
@@ -760,6 +762,8 @@ $(document).ready(() => {
                                             $('#twitchUserInfo').show();
                                             $('#twitchAuthButton').hide();
                                             $('#twitchUnauthButton').show();
+                                            $('#twitchAdTracker').css('background', 'rgba(145, 70, 255, 0.25)').css('color', '#a970ff').show();
+                                            $('#twitchAdStatus').html('Ads: <span style="color:#53fc18; font-weight:bold;">Authorized ✓</span>');
                                         } else {
                                             localStorage.removeItem('saved_twitch_token');
                                             window.authorizedTwitchUser = null;
@@ -767,6 +771,8 @@ $(document).ready(() => {
                                             $('#twitchUserInfo').hide();
                                             $('#twitchAuthButton').show();
                                             $('#twitchUnauthButton').hide();
+                                            $('#twitchAdTracker').css('background', 'rgba(255, 170, 0, 0.2)').css('color', '#ffaa00').show();
+                                            $('#twitchAdStatus').html('Ads: <a href="#" onclick="authorizeTwitch(); return false;" style="color:#ffaa00; font-weight: bold; text-decoration:underline;">Authorize Twitch</a>');
                                         }
                                     });
                             } else {
@@ -776,6 +782,8 @@ $(document).ready(() => {
                                 $('#twitchUserInfo').hide();
                                 $('#twitchAuthButton').show();
                                 $('#twitchUnauthButton').hide();
+                                $('#twitchAdTracker').css('background', 'rgba(255, 170, 0, 0.2)').css('color', '#ffaa00').show();
+                                $('#twitchAdStatus').html('Ads: <a href="#" onclick="authorizeTwitch(); return false;" style="color:#ffaa00; font-weight: bold; text-decoration:underline;">Authorize Twitch</a>');
                             }
                         })
                         .catch(() => {});
@@ -785,6 +793,8 @@ $(document).ready(() => {
                         $('#twitchUserInfo').hide();
                         $('#twitchAuthButton').show();
                         $('#twitchUnauthButton').hide();
+                        $('#twitchAdTracker').css('background', 'rgba(255, 170, 0, 0.2)').css('color', '#ffaa00').show();
+                        $('#twitchAdStatus').html('Ads: <a href="#" onclick="authorizeTwitch(); return false;" style="color:#ffaa00; font-weight: bold; text-decoration:underline;">Authorize Twitch</a>');
                     }
                 })
                 .catch(err => console.error('Failed to check auth status', err));

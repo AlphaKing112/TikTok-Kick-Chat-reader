@@ -47,9 +47,6 @@
             <div id="twitchLiveStatus" style="display:flex;align-items:center;gap:6px; position:relative;">
                 <span class="live-dot" id="twitchDot"></span>
                 <span style="font-size:1em;">Twitch</span>
-                <div id="twitchAdTracker" style="display: none; margin-left: 10px; font-size: 0.8em; background: rgba(145, 70, 255, 0.2); padding: 4px 10px; border-radius: 20px; color: #e3e5eb;">
-                    <span id="twitchAdStatus">Checking Ads...</span>
-                </div>
             </div>
         </div>
     </div>
@@ -412,6 +409,9 @@
                             <div style="display: inline-flex; align-items: center; position: relative;">
                                 <button id="showPollBtn" onclick="openPollModal()" title="Stream Poll: Create & Manage Polls" style="background: transparent; color: #ffaa00; border: none; padding: 0 5px; font-size: 1.4em; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.25)'" onmouseout="this.style.transform='scale(1)'">📊</button>
                                 <span id="activePollTicker" onclick="openPollModal()" style="display: none; background: #ffaa00; color: #000; font-weight: bold; font-size: 0.7em; padding: 2px 6px; border-radius: 10px; cursor: pointer; margin-left: 2px; vertical-align: middle; font-family: monospace;" title="Active Poll Timer - Click to view">⏱️ <span id="activePollTickerText">00:00</span></span>
+                            </div>
+                            <div id="twitchAdTracker" style="display: none; font-size: 0.75em; background: rgba(145, 70, 255, 0.25); padding: 3px 9px; border-radius: 12px; color: #e3e5eb; margin-left: 4px; white-space: nowrap;">
+                                <span id="twitchAdStatus">Ads: Checking...</span>
                             </div>
                         </div>
                         <button id="sendChatBtn" onclick="sendTwitchChat()" style="background: #9146FF; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; flex-shrink: 0;">Send</button>
