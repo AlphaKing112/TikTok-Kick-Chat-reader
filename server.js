@@ -1332,6 +1332,34 @@ async function getTwitchAuthHeaders() {
     };
 }
 
+const AUTH_FILE = path.join(__dirname, 'auth_state.json');
+
+function loadAuthState() {
+    try {
+        if (fs.existsSync(AUTH_FILE)) {
+            const data = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
+            if (data.TWITCH_ACCESS_TOKEN) process.env.TWITCH_ACCESS_TOKEN = data.TWITCH_ACCESS_TOKEN;
+            if (data.TWITCH_USERNAME) process.env.TWITCH_USERNAME = data.TWITCH_USERNAME;
+            if (data.KICK_ACCESS_TOKEN) process.env.KICK_ACCESS_TOKEN = data.KICK_ACCESS_TOKEN;
+            if (data.KICK_USERNAME) process.env.KICK_USERNAME = data.KICK_USERNAME;
+        }
+    } catch (err) {}
+}
+
+function saveAuthState() {
+    try {
+        const state = {
+            TWITCH_ACCESS_TOKEN: process.env.TWITCH_ACCESS_TOKEN || '',
+            TWITCH_USERNAME: process.env.TWITCH_USERNAME || '',
+            KICK_ACCESS_TOKEN: process.env.KICK_ACCESS_TOKEN || '',
+            KICK_USERNAME: process.env.KICK_USERNAME || ''
+        };
+        fs.writeFileSync(AUTH_FILE, JSON.stringify(state, null, 2));
+    } catch (err) {}
+}
+
+loadAuthState();
+
 app.get('/api/twitch/auth/url', (req, res) => {
     if (!process.env.TWITCH_CLIENT_ID) {
         return res.status(400).json({ error: 'TWITCH_CLIENT_ID not configured in .env' });
@@ -1357,6 +1385,8 @@ app.get('/api/twitch/auth/status', async (req, res) => {
             }
         });
         const user = response.data.data[0];
+        if (user && user.login) process.env.TWITCH_USERNAME = user.login;
+        saveAuthState();
         res.json({ authorized: true, username: user.login, displayName: user.display_name || user.login });
     } catch (e) {
         res.json({ authorized: false });
@@ -1384,7 +1414,7 @@ app.post('/api/twitch/auth', (req, res) => {
         fs.writeFileSync(envPath, `TWITCH_ACCESS_TOKEN=${token}`);
     }
 
-    // Reset the cached moderator ID so it is re-fetched with the new token
+    saveAuthState();
     global.twitchModeratorId = null;
 
     res.json({ success: true });
@@ -1392,12 +1422,15 @@ app.post('/api/twitch/auth', (req, res) => {
 
 app.post('/api/twitch/auth/logout', (req, res) => {
     process.env.TWITCH_ACCESS_TOKEN = '';
+    process.env.TWITCH_USERNAME = '';
     const envPath = path.join(__dirname, '.env');
     if (fs.existsSync(envPath)) {
         let envContent = fs.readFileSync(envPath, 'utf8');
         envContent = envContent.replace(/TWITCH_ACCESS_TOKEN=.*/g, 'TWITCH_ACCESS_TOKEN=');
+        envContent = envContent.replace(/TWITCH_USERNAME=.*/g, 'TWITCH_USERNAME=');
         fs.writeFileSync(envPath, envContent);
     }
+    saveAuthState();
     global.twitchModeratorId = null;
     res.json({ success: true });
 });
@@ -1501,6 +1534,7 @@ app.get('/api/kick-oauth/callback', async (req, res) => {
                 fs.writeFileSync(envPath, `KICK_ACCESS_TOKEN=${tokenData.access_token}\nKICK_USERNAME=${process.env.KICK_USERNAME || ''}`);
             }
 
+            saveAuthState();
             return res.redirect(`/kick-callback.html?token=${encodeURIComponent(tokenData.access_token)}&username=${encodeURIComponent(process.env.KICK_USERNAME || '')}`);
         } else {
             throw new Error(tokenData.error || 'No access_token returned');
@@ -1537,6 +1571,7 @@ app.post('/api/kick/auth/restore', (req, res) => {
         }
         fs.writeFileSync(envPath, envContent);
     }
+    saveAuthState();
     res.json({ success: true });
 });
 
@@ -1545,6 +1580,7 @@ app.get('/api/kick/auth/status', async (req, res) => {
     if (!hasToken) return res.json({ authorized: false });
 
     if (process.env.KICK_USERNAME) {
+        saveAuthState();
         return res.json({ authorized: true, username: process.env.KICK_USERNAME, displayName: process.env.KICK_USERNAME });
     }
 
@@ -1556,6 +1592,7 @@ app.get('/api/kick/auth/status', async (req, res) => {
         const firstChan = chanRes.data?.data?.[0];
         if (firstChan?.slug) {
             process.env.KICK_USERNAME = firstChan.slug;
+            saveAuthState();
             return res.json({ authorized: true, username: firstChan.slug, displayName: firstChan.slug });
         }
 
@@ -1567,11 +1604,14 @@ app.get('/api/kick/auth/status', async (req, res) => {
         if (user && (user.username || user.name)) {
             const name = user.username || user.name;
             process.env.KICK_USERNAME = name;
+            saveAuthState();
             res.json({ authorized: true, username: name, displayName: user.name || name });
         } else {
+            saveAuthState();
             res.json({ authorized: true, username: process.env.KICK_CHANNEL_NAME || 'Kick User' });
         }
     } catch (e) {
+        saveAuthState();
         res.json({ authorized: hasToken, username: process.env.KICK_USERNAME || process.env.KICK_CHANNEL_NAME || 'Authorized' });
     }
 });
@@ -1586,6 +1626,7 @@ app.post('/api/kick/auth/logout', (req, res) => {
         envContent = envContent.replace(/KICK_USERNAME=.*/g, 'KICK_USERNAME=');
         fs.writeFileSync(envPath, envContent);
     }
+    saveAuthState();
     res.json({ success: true });
 });
 
