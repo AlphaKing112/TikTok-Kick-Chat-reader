@@ -3494,6 +3494,13 @@ $(document).on('change', '#pollFontSelect', function() {
     }
 });
 
+$(document).ready(function() {
+    const savedFont = localStorage.getItem('selectedPollFont');
+    if (savedFont && $('#pollFontSelect').length) {
+        $('#pollFontSelect').val(savedFont);
+    }
+});
+
 window.endPollSubmit = function() {
     if (window.connection && window.connection.socket) {
         window.connection.socket.emit('endPoll');

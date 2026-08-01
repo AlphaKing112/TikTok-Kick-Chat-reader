@@ -243,6 +243,7 @@
         function changePollFont(fontName) {
             if (!fontName) return;
             currentFont = fontName.trim();
+            const cleanFont = currentFont.replace(/['"]/g, '');
             
             const fontId = 'dynamic-poll-font-link';
             let link = document.getElementById(fontId);
@@ -252,21 +253,33 @@
                 link.rel = 'stylesheet';
                 document.head.appendChild(link);
             }
-            link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(currentFont)}:wght@400;600;700;800&display=swap`;
+            link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(cleanFont).replace(/%20/g, '+')}&display=swap`;
 
-            document.documentElement.style.setProperty('--poll-font', `'${currentFont}', monospace, sans-serif`);
-            document.body.style.fontFamily = `'${currentFont}', monospace, sans-serif`;
+            document.documentElement.style.setProperty('--poll-font', `'${cleanFont}', sans-serif`);
+            document.body.style.fontFamily = `'${cleanFont}', sans-serif`;
 
-            const elements = document.querySelectorAll('.poll-title, .poll-subtitle, .option-content');
+            let letterSpacing = '0.5px';
+            if (cleanFont.includes('Bebas Neue')) letterSpacing = '1.5px';
+            if (cleanFont.includes('Outfit') || cleanFont.includes('Poppins') || cleanFont.includes('Roboto')) letterSpacing = '0.3px';
+
+            const elements = document.querySelectorAll('.poll-title, .poll-subtitle, .option-content, .option-label, .option-percentage, .poll-timer-badge');
             elements.forEach(el => {
-                el.style.fontFamily = `'${currentFont}', monospace, sans-serif`;
+                el.style.fontFamily = `'${cleanFont}', sans-serif`;
+                el.style.letterSpacing = letterSpacing;
             });
         }
 
         function updatePollUI(poll) {
+            if (!poll) return;
+
+            // Always update font even if poll is inactive
+            if (poll.font) {
+                changePollFont(poll.font);
+            }
+
             const container = document.getElementById('pollContainer');
 
-            if (!poll || !poll.active) {
+            if (!poll.active) {
                 if (container.classList.contains('active')) {
                     container.classList.remove('active');
                     container.classList.add('hiding');
@@ -279,10 +292,6 @@
                 }
                 if (timerInterval) clearInterval(timerInterval);
                 return;
-            }
-
-            if (poll.font && poll.font !== currentFont) {
-                changePollFont(poll.font);
             }
 
             container.classList.remove('hiding');
@@ -332,7 +341,7 @@
 
                 card.innerHTML = `
                     <div class="bar-fill" style="width: ${percent}%"></div>
-                    <div class="option-content" style="font-family: '${currentFont}', monospace, sans-serif;">
+                    <div class="option-content" style="font-family: '${currentFont}', sans-serif;">
                         <span class="option-label">${escapeHtml(opt.label || opt.keyword)}</span>
                         <span class="option-percentage">${percent}%</span>
                     </div>
@@ -340,11 +349,8 @@
                 list.appendChild(card);
             });
 
-            // Ensure font is applied to headers and elements
-            const elements = document.querySelectorAll('.poll-title, .poll-subtitle');
-            elements.forEach(el => {
-                el.style.fontFamily = `'${currentFont}', monospace, sans-serif`;
-            });
+            // Re-apply current font styling to updated elements
+            changePollFont(currentFont);
         }
 
         function escapeHtml(str) {
@@ -372,7 +378,7 @@
             timerInterval = setInterval(updateTimer, 1000);
         }
 
-        // Initialize font from URL parameter on load (if specified), otherwise server default
+        // Initialize font from URL parameter on load (if specified), otherwise default
         const urlParams = new URLSearchParams(window.location.search);
         const urlFont = urlParams.get('font');
         if (urlFont) {
