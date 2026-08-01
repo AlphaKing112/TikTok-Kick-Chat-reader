@@ -1235,8 +1235,9 @@ app.get('/api/twitch/pins/:broadcasterId', async (req, res) => {
         
         return res.json({ data: response.data.data });
     } catch (error) {
-        console.error('[Twitch] Get Pins Error:', error.response?.data || error.message);
-        // Ignore 404/400 errors if pins aren't supported or empty
+        if (error.response?.status !== 401 && error.response?.status !== 404) {
+            console.error('[Twitch] Get Pins Error:', error.response?.data || error.message);
+        }
         return res.status(200).json({ data: [] }); 
     }
 });

@@ -760,6 +760,13 @@ $(document).ready(() => {
                                             $('#twitchUserInfo').show();
                                             $('#twitchAuthButton').hide();
                                             $('#twitchUnauthButton').show();
+                                        } else {
+                                            localStorage.removeItem('saved_twitch_token');
+                                            window.authorizedTwitchUser = null;
+                                            $('#twitchUsername').text('');
+                                            $('#twitchUserInfo').hide();
+                                            $('#twitchAuthButton').show();
+                                            $('#twitchUnauthButton').hide();
                                         }
                                     });
                             } else {
