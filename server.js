@@ -378,8 +378,10 @@ function finalizeAndSchedulePollRemoval() {
     }, 10000);
 }
 
+let currentPollFont = 'Press Start 2P';
+
 function getPollPayload() {
-    if (!activePoll) return { active: false };
+    if (!activePoll) return { active: false, font: currentPollFont };
     return {
         active: activePoll.active,
         ended: activePoll.ended,
@@ -388,7 +390,8 @@ function getPollPayload() {
         totalVotes: activePoll.totalVotes || 0,
         duration: activePoll.duration,
         endTime: activePoll.endTime,
-        targetPlatform: activePoll.targetPlatform || 'all'
+        targetPlatform: activePoll.targetPlatform || 'all',
+        font: activePoll.font || currentPollFont
     };
 }
 
@@ -407,9 +410,22 @@ io.on('connection', (socket) => {
         socket.emit('pollState', getPollPayload());
     });
 
-    socket.on('createPoll', ({ title, options, duration, targetPlatform }) => {
+    socket.on('updatePollFont', ({ font }) => {
+        if (font) {
+            currentPollFont = font;
+            if (activePoll) {
+                activePoll.font = font;
+            }
+            io.emit('pollFontChanged', { font });
+            io.emit('pollUpdate', getPollPayload());
+        }
+    });
+
+    socket.on('createPoll', ({ title, options, duration, targetPlatform, font }) => {
         if (pollTimerTimeout) clearTimeout(pollTimerTimeout);
         if (pollHideTimeout) clearTimeout(pollHideTimeout);
+
+        if (font) currentPollFont = font;
 
         const formattedOptions = (options || []).map((opt, i) => ({
             id: i + 1,
@@ -430,7 +446,8 @@ io.on('connection', (socket) => {
             voterMap: new Map(),
             duration: durationSec,
             endTime: endTime,
-            targetPlatform: targetPlatform || 'all'
+            targetPlatform: targetPlatform || 'all',
+            font: currentPollFont
         };
 
         if (endTime) {

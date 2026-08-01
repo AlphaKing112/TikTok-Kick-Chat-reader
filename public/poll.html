@@ -223,20 +223,6 @@
 </head>
 <body>
 
-    <!-- Floating Font Switcher Dropdown (Transparent / Hoverable for Streamers) -->
-    <div id="fontPickerContainer" style="position: fixed; bottom: 10px; right: 10px; z-index: 99999; opacity: 0.3; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.3'">
-        <select id="overlayFontDropdown" onchange="changePollFont(this.value)" style="background: rgba(14, 14, 20, 0.9); color: #ffaa00; border: 1px solid #ffaa00; border-radius: 6px; padding: 5px 8px; font-family: monospace; font-size: 11px; cursor: pointer; backdrop-filter: blur(4px);">
-            <option value="Press Start 2P">👾 Press Start 2P (8-Bit)</option>
-            <option value="Pixelify Sans">🎮 Pixelify Sans (Modern Pixel)</option>
-            <option value="Outfit">✨ Outfit (Modern Stream)</option>
-            <option value="Bebas Neue">🔥 Bebas Neue (Esports / Bold)</option>
-            <option value="Poppins">🟣 Poppins (Geometric)</option>
-            <option value="Luckiest Guy">🎯 Luckiest Guy (Playful Cartoon)</option>
-            <option value="VT323">💻 VT323 (Retro CRT Terminal)</option>
-            <option value="Roboto">⚡ Roboto (Clean Standard)</option>
-        </select>
-    </div>
-
     <div id="pollContainer">
         <div class="poll-header-block">
             <div class="poll-title" id="pollTitle">LIVE POLL</div>
@@ -275,13 +261,6 @@
             elements.forEach(el => {
                 el.style.fontFamily = `'${currentFont}', monospace, sans-serif`;
             });
-
-            const selectEl = document.getElementById('overlayFontDropdown');
-            if (selectEl) selectEl.value = currentFont;
-
-            const url = new URL(window.location);
-            url.searchParams.set('font', currentFont);
-            window.history.replaceState({}, '', url);
         }
 
         function updatePollUI(poll) {
@@ -300,6 +279,10 @@
                 }
                 if (timerInterval) clearInterval(timerInterval);
                 return;
+            }
+
+            if (poll.font && poll.font !== currentFont) {
+                changePollFont(poll.font);
             }
 
             container.classList.remove('hiding');
@@ -389,13 +372,21 @@
             timerInterval = setInterval(updateTimer, 1000);
         }
 
-        // Initialize font from URL parameter on load
+        // Initialize font from URL parameter on load (if specified), otherwise server default
         const urlParams = new URLSearchParams(window.location.search);
-        const initialFont = urlParams.get('font') || 'Press Start 2P';
-        changePollFont(initialFont);
+        const urlFont = urlParams.get('font');
+        if (urlFont) {
+            changePollFont(urlFont);
+        }
 
         socket.on('connect', () => {
             socket.emit('getPollState');
+        });
+
+        socket.on('pollFontChanged', (data) => {
+            if (data && data.font) {
+                changePollFont(data.font);
+            }
         });
 
         socket.on('pollCreated', (poll) => updatePollUI(poll));

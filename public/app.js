@@ -3475,14 +3475,24 @@ window.startPollSubmit = function() {
 
     const duration = $('#pollDurationSelect').val();
     const targetPlatform = $('#pollPlatformSelect').val() || 'all';
+    const font = $('#pollFontSelect').val() || 'Press Start 2P';
 
     if (window.connection && window.connection.socket) {
-        window.connection.socket.emit('createPoll', { title, options, duration, targetPlatform });
+        window.connection.socket.emit('createPoll', { title, options, duration, targetPlatform, font });
         showNotification('🚀 Poll started successfully!', 'success');
     } else {
         showNotification('Socket connection not ready!', 'error');
     }
 };
+
+$(document).on('change', '#pollFontSelect', function() {
+    const selectedFont = $(this).val();
+    localStorage.setItem('selectedPollFont', selectedFont);
+    if (window.connection && window.connection.socket) {
+        window.connection.socket.emit('updatePollFont', { font: selectedFont });
+        showNotification(`🎨 Overlay font changed to "${selectedFont}"!`, 'info');
+    }
+});
 
 window.endPollSubmit = function() {
     if (window.connection && window.connection.socket) {
@@ -3510,8 +3520,7 @@ window.resetPollFields = function() {
 
 window.copyPollOverlayUrl = function() {
     const origin = window.location.origin;
-    const font = $('#pollFontSelect').val() || 'Press Start 2P';
-    const pollUrl = `${origin}/poll.html?font=${encodeURIComponent(font)}`;
+    const pollUrl = `${origin}/poll.html`;
     navigator.clipboard.writeText(pollUrl).then(() => {
         showNotification('📋 Poll Overlay URL copied to clipboard: ' + pollUrl, 'success');
     }).catch(() => {
