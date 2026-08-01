@@ -285,6 +285,10 @@
     <script>
         function unauthorizeKick() {
             if (confirm("Are you sure you want to log out of Kick? You will lose channel management capabilities until you re-authorize.")) {
+                try {
+                    localStorage.removeItem('saved_kick_token');
+                    localStorage.removeItem('saved_kick_username');
+                } catch(e) {}
                 fetch('/api/kick/auth/logout', { method: 'POST' })
                     .then(() => window.location.reload());
             }
@@ -312,6 +316,9 @@
 
         function unauthorizeTwitch() {
             if (confirm("Are you sure you want to log out of Twitch? You will lose moderation and follow capabilities until you re-authorize.")) {
+                try {
+                    localStorage.removeItem('saved_twitch_token');
+                } catch(e) {}
                 fetch('/api/twitch/auth/logout', { method: 'POST' })
                     .then(() => window.location.reload());
             }

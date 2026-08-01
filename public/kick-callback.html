@@ -35,6 +35,24 @@
     </div>
 
     <script>
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        const username = params.get('username');
+
+        if (token) {
+            try {
+                localStorage.setItem('saved_kick_token', token);
+                if (username) localStorage.setItem('saved_kick_username', username);
+            } catch(e) {}
+
+            if (window.opener) {
+                try {
+                    window.opener.localStorage.setItem('saved_kick_token', token);
+                    if (username) window.opener.localStorage.setItem('saved_kick_username', username);
+                } catch(e) {}
+            }
+        }
+
         // Update parent window if opened via popup
         if (window.opener && window.opener.checkKickAuthStatus) {
             window.opener.checkKickAuthStatus();

@@ -722,6 +722,8 @@ $(document).ready(() => {
         
         // TWITCH CHAT HANDLING
         window.checkTwitchAuthStatus = function() {
+            const savedTwitchToken = localStorage.getItem('saved_twitch_token');
+
             fetch('/api/twitch/auth/status')
                 .then(res => res.json())
                 .then(data => {
@@ -732,13 +734,44 @@ $(document).ready(() => {
                         $('#twitchUserInfo').show();
                         $('#twitchAuthButton').hide();
                         $('#twitchUnauthButton').show();
-                        // If we connected before auth, our roomId is null. Reconnect to fetch it properly!
                         if (!window.currentTwitchRoomId && typeof currentTwitchChannelName !== 'undefined' && currentTwitchChannelName) {
                             window.connection.socket.emit('setTwitchChannel', currentTwitchChannelName);
                         }
                         if (window.currentTwitchRoomId && typeof startAdTracker === 'function') {
                             startAdTracker();
                         }
+                    } else if (savedTwitchToken) {
+                        // Restore server session if Render restarted or container slept
+                        fetch('/api/twitch/auth', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token: savedTwitchToken })
+                        })
+                        .then(r => r.json())
+                        .then(rData => {
+                            if (rData.success) {
+                                fetch('/api/twitch/auth/status')
+                                    .then(sRes => sRes.json())
+                                    .then(sData => {
+                                        if (sData.authorized) {
+                                            window.authorizedTwitchUser = sData.username;
+                                            const displayUser = sData.displayName || sData.username;
+                                            $('#twitchUsername').text(displayUser);
+                                            $('#twitchUserInfo').show();
+                                            $('#twitchAuthButton').hide();
+                                            $('#twitchUnauthButton').show();
+                                        }
+                                    });
+                            } else {
+                                localStorage.removeItem('saved_twitch_token');
+                                window.authorizedTwitchUser = null;
+                                $('#twitchUsername').text('');
+                                $('#twitchUserInfo').hide();
+                                $('#twitchAuthButton').show();
+                                $('#twitchUnauthButton').hide();
+                            }
+                        })
+                        .catch(() => {});
                     } else {
                         window.authorizedTwitchUser = null;
                         $('#twitchUsername').text('');
@@ -753,6 +786,9 @@ $(document).ready(() => {
         window.checkTwitchAuthStatus();
 
         window.checkKickAuthStatus = function() {
+            const savedKickToken = localStorage.getItem('saved_kick_token');
+            const savedKickUsername = localStorage.getItem('saved_kick_username');
+
             fetch('/api/kick/auth/status')
                 .then(res => res.json())
                 .then(data => {
@@ -763,6 +799,39 @@ $(document).ready(() => {
                         $('#kickUserInfo').show();
                         $('#kickAuthButton').hide();
                         $('#kickUnauthButton').show();
+                    } else if (savedKickToken) {
+                        // Restore server session if Render restarted or container slept
+                        fetch('/api/kick/auth/restore', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token: savedKickToken, username: savedKickUsername })
+                        })
+                        .then(r => r.json())
+                        .then(rData => {
+                            if (rData.success) {
+                                fetch('/api/kick/auth/status')
+                                    .then(sRes => sRes.json())
+                                    .then(sData => {
+                                        if (sData.authorized) {
+                                            window.authorizedKickUser = sData.username;
+                                            const displayUser = sData.displayName || sData.username;
+                                            $('#kickUsername').text(displayUser);
+                                            $('#kickUserInfo').show();
+                                            $('#kickAuthButton').hide();
+                                            $('#kickUnauthButton').show();
+                                        }
+                                    });
+                            } else {
+                                localStorage.removeItem('saved_kick_token');
+                                localStorage.removeItem('saved_kick_username');
+                                window.authorizedKickUser = null;
+                                $('#kickUsername').text('');
+                                $('#kickUserInfo').hide();
+                                $('#kickAuthButton').show();
+                                $('#kickUnauthButton').hide();
+                            }
+                        })
+                        .catch(() => {});
                     } else {
                         window.authorizedKickUser = null;
                         $('#kickUsername').text('');

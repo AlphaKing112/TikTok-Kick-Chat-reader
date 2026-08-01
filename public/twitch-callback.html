@@ -41,7 +41,16 @@
         const accessToken = params.get('access_token');
 
         if (accessToken) {
-            // Send to our backend to store in .env
+            try {
+                localStorage.setItem('saved_twitch_token', accessToken);
+            } catch(e) {}
+            if (window.opener) {
+                try {
+                    window.opener.localStorage.setItem('saved_twitch_token', accessToken);
+                } catch(e) {}
+            }
+
+            // Send to our backend to store in server session
             fetch('/api/twitch/auth', {
                 method: 'POST',
                 headers: {

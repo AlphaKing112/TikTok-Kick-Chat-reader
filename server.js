@@ -1500,7 +1500,7 @@ app.get('/api/kick-oauth/callback', async (req, res) => {
                 fs.writeFileSync(envPath, `KICK_ACCESS_TOKEN=${tokenData.access_token}\nKICK_USERNAME=${process.env.KICK_USERNAME || ''}`);
             }
 
-            return res.sendFile(path.join(__dirname, 'public', 'kick-callback.html'));
+            return res.redirect(`/kick-callback.html?token=${encodeURIComponent(tokenData.access_token)}&username=${encodeURIComponent(process.env.KICK_USERNAME || '')}`);
         } else {
             throw new Error(tokenData.error || 'No access_token returned');
         }
@@ -1510,6 +1510,33 @@ app.get('/api/kick-oauth/callback', async (req, res) => {
         const errDetail = err.response?.data ? (typeof err.response.data === 'object' ? JSON.stringify(err.response.data, null, 2) : err.response.data) : err.message;
         return res.status(500).send(`<html><body style="background:#121212;color:white;font-family:sans-serif;padding:20px;"><h2 style="color:#ff5555">Token Exchange Failed</h2><p style="color:#aaa;">Details from Kick API (Status ${err.response?.status || 500}):</p><pre style="background:#222;padding:15px;border-radius:6px;color:#ffaa00;overflow-x:auto;">${errDetail}</pre></body></html>`);
     }
+});
+
+app.post('/api/kick/auth/restore', (req, res) => {
+    const { token, username } = req.body;
+    if (!token) return res.status(400).json({ error: 'Token is required' });
+
+    process.env.KICK_ACCESS_TOKEN = token;
+    if (username) process.env.KICK_USERNAME = username;
+
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+        let envContent = fs.readFileSync(envPath, 'utf8');
+        if (envContent.includes('KICK_ACCESS_TOKEN=')) {
+            envContent = envContent.replace(/KICK_ACCESS_TOKEN=.*/g, `KICK_ACCESS_TOKEN=${token}`);
+        } else {
+            envContent += `\nKICK_ACCESS_TOKEN=${token}`;
+        }
+        if (username) {
+            if (envContent.includes('KICK_USERNAME=')) {
+                envContent = envContent.replace(/KICK_USERNAME=.*/g, `KICK_USERNAME=${username}`);
+            } else {
+                envContent += `\nKICK_USERNAME=${username}`;
+            }
+        }
+        fs.writeFileSync(envPath, envContent);
+    }
+    res.json({ success: true });
 });
 
 app.get('/api/kick/auth/status', async (req, res) => {
