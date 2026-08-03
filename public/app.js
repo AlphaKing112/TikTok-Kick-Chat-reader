@@ -2561,7 +2561,8 @@ function hidePinnedMessage(fullyUnpinned = false) {
 function showPinnedMessage() {
     locallyHiddenPinnedMessageId = null;
     $('#showPinnedBtn').fadeOut(200);
-    $('#pinnedMessageContainer').slideDown(300, function() {
+    $('#pinnedMessageContainer').css('flex-shrink', '0').slideDown(300, function() {
+        $(this).css('flex-shrink', '0');
         $('#pinnedMessageContent').css('opacity', '1');
     });
 }
@@ -2634,7 +2635,11 @@ function renderNativePinnedMessage(pin) {
     
     $('#pinnedMessageContent').css('opacity', '1').html(html);
     if (!$('#pinnedMessageContainer').is(':visible')) {
-        $('#pinnedMessageContainer').slideDown(200);
+        $('#pinnedMessageContainer').css('flex-shrink', '0').slideDown(200, function() {
+            $(this).css('flex-shrink', '0');
+        });
+    } else {
+        $('#pinnedMessageContainer').css('flex-shrink', '0');
     }
 }
 

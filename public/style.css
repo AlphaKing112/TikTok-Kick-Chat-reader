@@ -1497,6 +1497,25 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
     }
+
+    #pinnedMessageContainer {
+        flex-shrink: 0 !important;
+        max-height: 120px !important;
+    }
+
+    #pinnedMessageContent {
+        max-height: 75px !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+}
+
+/* Ensure fixed chat headers, pinned message box, ad banner, and chat input never shrink under flex pressure */
+.containerheader,
+#pinnedMessageContainer,
+#twitchAdChatBanner,
+#chatInputContainer {
+    flex-shrink: 0 !important;
 }
 
 /* Bottom Chat Reader Dock inside custom web tabs */
