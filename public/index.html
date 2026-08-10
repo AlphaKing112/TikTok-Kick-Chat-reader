@@ -449,10 +449,8 @@
                 <label for="newTabUrl">Website URL</label>
                 <input type="url" id="newTabUrl" placeholder="https://streamelements.com/dashboard/.../activity/popout" autocomplete="off" onkeypress="if(event.key==='Enter') saveNewTab()">
                 
-                <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" id="newTabUnframeProxy" style="width: auto; cursor: pointer;">
-                    <label for="newTabUnframeProxy" style="margin: 0; cursor: pointer; font-size: 0.88em; color: #a0a5ba;">Bypass iframe block (Un-frame Proxy for sites with X-Frame-Options)</label>
-                </div>
+                <!-- Proxy mode is auto-detected server-side; hidden input keeps saveNewTab() compatible -->
+                <input type="checkbox" id="newTabUnframeProxy" style="display: none;">
             </div>
             <div class="tab-modal-footer">
                 <button class="tab-btn-secondary" onclick="closeAddPageModal()">Cancel</button>

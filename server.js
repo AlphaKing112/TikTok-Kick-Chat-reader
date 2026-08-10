@@ -271,6 +271,76 @@ const handleUnframeProxy = async (req, res) => {
 app.get('/api/streamelements-proxy', handleUnframeProxy);
 app.get('/api/unframe-proxy', handleUnframeProxy);
 
+// === Iframe Compatibility Check ===
+// Returns { allowed: bool } so the client can auto-enable proxy mode if needed
+app.get('/api/check-iframe-compat', async (req, res) => {
+    try {
+        let targetUrl = req.query.url;
+        if (!targetUrl) return res.json({ allowed: true });
+        if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
+
+        // YouTube embed URLs are always allowed
+        try {
+            const parsed = new URL(targetUrl);
+            const host = parsed.hostname.replace('www.', '');
+            if ((host === 'youtube.com' || host === 'youtu.be') && parsed.pathname.startsWith('/embed/')) {
+                return res.json({ allowed: true });
+            }
+        } catch (e) {}
+
+        // Do a HEAD request (fallback to GET) to read response headers only
+        let headers = {};
+        try {
+            const headResp = await axios.head(targetUrl, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
+                timeout: 7000,
+                maxRedirects: 5,
+                validateStatus: () => true
+            });
+            headers = headResp.headers || {};
+        } catch (e) {
+            // HEAD failed, try GET with no body
+            try {
+                const getResp = await axios.get(targetUrl, {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
+                    timeout: 7000,
+                    maxRedirects: 5,
+                    responseType: 'stream',
+                    validateStatus: () => true
+                });
+                headers = getResp.headers || {};
+                getResp.data.destroy(); // Don't read the body
+            } catch (e2) {
+                // Can't reach site — assume allowed, direct load will fail visibly
+                return res.json({ allowed: true });
+            }
+        }
+
+        const xfo = (headers['x-frame-options'] || '').toLowerCase();
+        const csp = (headers['content-security-policy'] || '').toLowerCase();
+
+        // Blocked if X-Frame-Options is DENY or SAMEORIGIN
+        const blockedByXFO = xfo === 'deny' || xfo === 'sameorigin';
+
+        // Blocked if CSP frame-ancestors doesn't include a wildcard
+        let blockedByCSP = false;
+        if (csp.includes('frame-ancestors')) {
+            const faMatch = csp.match(/frame-ancestors\s+([^;]+)/);
+            if (faMatch) {
+                const faValue = faMatch[1].trim();
+                blockedByCSP = !faValue.includes("'none'") === false || (!faValue.includes('*') && !faValue.includes('http'));
+                // Simpler: if it doesn't have * it's likely restricted
+                blockedByCSP = !faValue.includes('*');
+            }
+        }
+
+        const allowed = !blockedByXFO && !blockedByCSP;
+        res.json({ allowed });
+    } catch (e) {
+        res.json({ allowed: true }); // Default to allowed on error
+    }
+});
+
 app.get('/api/proxy-asset', async (req, res) => {
     try {
         const assetUrl = req.query.url;

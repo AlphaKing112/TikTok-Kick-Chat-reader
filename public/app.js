@@ -3734,7 +3734,16 @@ function loadSavedCustomTabs() {
     try {
         const saved = localStorage.getItem('combinedchat_custom_tabs');
         if (saved) {
-            customTabs = JSON.parse(saved);
+            const all = JSON.parse(saved);
+            // Filter out any previously saved YouTube homepage/channel tabs that can never embed
+            customTabs = all.filter(tab => {
+                if (!tab || !tab.url) return false;
+                return !isYouTubeEmbedBlockedUrl(tab.url);
+            });
+            // Persist the cleaned list if anything was removed
+            if (customTabs.length !== all.length) {
+                saveCustomTabsToStorage();
+            }
         }
     } catch (e) {
         console.error('Failed to load custom tabs', e);
@@ -3771,13 +3780,57 @@ function formatTabUrl(inputUrl) {
             url = 'https://' + url;
         }
     }
+
+    // Auto-convert YouTube watch/shorts/live URLs to embeddable /embed/ URLs
+    // youtube.com/watch?v=ID → youtube.com/embed/ID
+    // youtu.be/ID → youtube.com/embed/ID
+    // youtube.com/shorts/ID → youtube.com/embed/ID
+    // youtube.com/live/ID → youtube.com/embed/ID
+    try {
+        const parsed = new URL(url);
+        const host = parsed.hostname.replace('www.', '');
+        if (host === 'youtube.com' || host === 'youtu.be') {
+            let videoId = null;
+            if (host === 'youtu.be') {
+                videoId = parsed.pathname.replace(/^\//, '').split('/')[0];
+            } else if (parsed.pathname.startsWith('/watch')) {
+                videoId = parsed.searchParams.get('v');
+            } else if (parsed.pathname.startsWith('/shorts/') || parsed.pathname.startsWith('/live/')) {
+                videoId = parsed.pathname.split('/')[2];
+            } else if (parsed.pathname.startsWith('/embed/')) {
+                // Already an embed URL, leave as-is
+                videoId = null;
+            }
+            if (videoId) {
+                url = `https://www.youtube.com/embed/${videoId}?autoplay=0`;
+            }
+        }
+    } catch (e) {}
+
     return url;
+}
+
+function isYouTubeEmbedBlockedUrl(url) {
+    // Returns true if this is a YouTube URL that can never be embedded
+    // (homepage, channel, search, playlist without video, etc.)
+    try {
+        const parsed = new URL(url);
+        const host = parsed.hostname.replace('www.', '');
+        if (host !== 'youtube.com' && host !== 'youtu.be') return false;
+        // Already an embed URL — fine
+        if (parsed.pathname.startsWith('/embed/')) return false;
+        // Has a video ID that was or will be converted — fine
+        if (parsed.searchParams.get('v')) return false;
+        if (host === 'youtu.be' && parsed.pathname.replace(/^\//, '').length > 0) return false;
+        if (parsed.pathname.startsWith('/shorts/') || parsed.pathname.startsWith('/live/')) return false;
+        // Everything else: homepage, /c/, /channel/, /results, etc.
+        return true;
+    } catch (e) { return false; }
 }
 
 function saveNewTab() {
     const title = $('#newTabTitle').val().trim() || 'New Website';
     const rawUrl = $('#newTabUrl').val();
-    const useUnframe = $('#newTabUnframeProxy').is(':checked');
     const url = formatTabUrl(rawUrl);
 
     if (!rawUrl.trim()) {
@@ -3787,12 +3840,7 @@ function saveNewTab() {
     }
 
     const tabId = 'custom_tab_' + Date.now();
-    const newTab = {
-        id: tabId,
-        title: title,
-        url: url,
-        useUnframeProxy: useUnframe
-    };
+    const newTab = { id: tabId, title: title, url: url };
 
     customTabs.push(newTab);
     saveCustomTabsToStorage();
@@ -3800,6 +3848,7 @@ function saveNewTab() {
     closeAddPageModal();
     switchToTab(tabId);
 }
+
 
 function removeTab(tabId, event) {
     if (event) {
@@ -3931,48 +3980,51 @@ function initMainDockResize(e) {
         document.addEventListener('mouseup', stopResize);
         e.preventDefault();
     }
+// Track open external windows per tab so we can re-focus instead of opening duplicates
+const externalTabWindows = {};
+
+function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|Samsung|Mobile/i.test(navigator.userAgent) ||
+           (navigator.maxTouchPoints > 1 && /MacIntel/.test(navigator.platform)); // iPadOS
 }
 
-function reloadTabIframe(tabId) {
-    const iframe = $(`#iframe_${tabId}`);
-    if (iframe.length) {
-        const tab = customTabs.find(t => t.id === tabId);
-        if (tab) {
-            iframe.attr('src', getTabIframeSrc(tab.url));
-        } else {
-            const src = iframe.attr('src');
-            iframe.attr('src', src);
-        }
-    }
+function isIPhone() {
+    // iPhone — no split screen support in Safari
+    return /iPhone/i.test(navigator.userAgent);
 }
 
-function openTabExternal(url) {
-    if (url) {
+function isIPad() {
+    // iPad supports Split View in Safari
+    return /iPad/i.test(navigator.userAgent) ||
+           (navigator.maxTouchPoints > 1 && /MacIntel/.test(navigator.platform));
+}
+
+function openTabExternal(tabId, url) {
+    if (!url) return;
+
+    if (isMobileDevice()) {
+        // On mobile, just open in a new tab — the user can split via OS
         window.open(url, '_blank');
+        return;
     }
-}
 
-function getTabIframeSrc(tabOrUrl) {
-    if (!tabOrUrl) return '';
-    if (typeof tabOrUrl === 'object') {
-        if (tabOrUrl.useUnframeProxy) {
-            return '/api/unframe-proxy?url=' + encodeURIComponent(tabOrUrl.url);
-        }
-        return tabOrUrl.url;
-    }
-    return String(tabOrUrl).trim();
-}
+    // Desktop: open positioned on the right half of the screen
+    const w = Math.floor(screen.availWidth / 2);
+    const h = screen.availHeight;
+    const left = Math.floor(screen.availWidth / 2);
+    const top = 0;
+    const winName = 'custom_tab_win_' + tabId;
 
-function toggleTabUnframeProxy(tabId) {
-    const tab = customTabs.find(t => t.id === tabId);
-    if (!tab) return;
-    tab.useUnframeProxy = !tab.useUnframeProxy;
-    saveCustomTabsToStorage();
-    const iframe = $(`#iframe_${tabId}`);
-    if (iframe.length) {
-        iframe.attr('src', getTabIframeSrc(tab));
+    // If already open and not closed, focus it
+    if (externalTabWindows[tabId] && !externalTabWindows[tabId].closed) {
+        externalTabWindows[tabId].focus();
+        return;
     }
-    renderTabs();
+
+    const win = window.open(url, winName, `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=yes`);
+    if (win) {
+        externalTabWindows[tabId] = win;
+    }
 }
 
 function renderTabs() {
@@ -3985,9 +4037,8 @@ function renderTabs() {
 
     customTabs.forEach(tab => {
         const isActive = activeTabId === tab.id;
-        const isUnframed = !!tab.useUnframeProxy;
         const tabHeader = $(`
-            <div class="browser-tab ${isActive ? 'active' : ''}" id="tab_header_${tab.id}" onclick="switchToTab('${tab.id}')" title="${tab.title} (${tab.url})">
+            <div class="browser-tab ${isActive ? 'active' : ''}" id="tab_header_${tab.id}" onclick="switchToTab('${tab.id}')" title="${tab.title}\n${tab.url}">
                 <span class="tab-icon">🌐</span>
                 <span class="tab-title-text">${escapeHtml(tab.title)}</span>
                 <span class="tab-close-btn" onclick="removeTab('${tab.id}', event)" title="Close tab">✕</span>
@@ -3996,22 +4047,59 @@ function renderTabs() {
         tabsListContainer.append(tabHeader);
 
         if (!$(`#tab_view_${tab.id}`).length) {
+            const mobile = isMobileDevice();
+            const iphone = isIPhone();
+            const ipad = isIPad();
+
+            const btnLabel = mobile ? '↗ Open in New Tab' : '↗ Open in Split Window';
+
+            let splitTip = '';
+            if (iphone) {
+                // iPhone Safari has NO split screen — be honest
+                splitTip = `
+                    <div style="font-size:0.78em;color:#555;text-align:center;max-width:320px;line-height:1.6;">
+                        iPhone Safari doesn't support split screen.<br>
+                        The site will open in a new tab — switch between<br>
+                        the tabs to use both at once.
+                    </div>`;
+            } else if (ipad) {
+                splitTip = `
+                    <div style="font-size:0.78em;color:#555;text-align:center;max-width:320px;line-height:1.6;">
+                        After opening, use <b style="color:#888;">iPad Split View</b>:<br>
+                        Long-press the tab switcher button → <b style="color:#888;">Open in Split View</b><br>
+                        to put the site next to this chat.
+                    </div>`;
+            } else if (mobile) {
+                splitTip = `
+                    <div style="font-size:0.78em;color:#555;text-align:center;max-width:320px;line-height:1.6;">
+                        After opening, use <b style="color:#888;">Android Split Screen</b>:<br>
+                        Hold the <b style="color:#888;">Recent Apps</b> button → select Split Screen,<br>
+                        then pick this Chat Reader app.
+                    </div>`;
+            } else {
+                splitTip = `
+                    <div style="font-size:0.78em;color:#555;text-align:center;max-width:320px;line-height:1.5;">
+                        Opens this site in a browser window on the right side of your screen.<br>
+                        Use <b style="color:#888;">Windows Snap (Win+←)</b> on this window to auto-fill the left half.
+                    </div>`;
+            }
+
             const tabView = $(`
-                <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}">
-                    <div class="custom-web-toolbar" style="z-index: 10; position: relative;">
-                        <button class="custom-web-btn" onclick="reloadTabIframe('${tab.id}')" title="Reload page">🔄</button>
-                        <div class="custom-url-bar">
-                            <span style="font-size: 0.9em;">🔒</span>
-                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(tab.url)}</span>
+                <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}" style="display: flex; flex-direction: column; height: 100%;">
+                    <!-- External Window Launch Panel -->
+                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #0d0f18 0%, #13151f 100%); gap: 18px; padding: 32px;">
+                        <div style="font-size: 3em; opacity: 0.6;">🌐</div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.2em; font-weight: bold; color: #e3e5eb; margin-bottom: 6px;">${escapeHtml(tab.title)}</div>
+                            <div style="font-size: 0.8em; color: #666; word-break: break-all; max-width: 360px;">${escapeHtml(tab.url)}</div>
                         </div>
-                        <button class="custom-web-btn" onclick="toggleTabUnframeProxy('${tab.id}')" title="${isUnframed ? 'Currently using Un-frame Proxy. Click to switch to Direct mode.' : 'Click if page is blocked by X-Frame-Options to bypass iframe protection.'}" style="background: ${isUnframed ? 'rgba(88, 166, 255, 0.25)' : 'rgba(255, 255, 255, 0.08)'}; color: ${isUnframed ? '#58a6ff' : '#aaa'}; border: 1px solid ${isUnframed ? '#58a6ff' : 'rgba(255,255,255,0.1)'}; margin-right: 6px;">${isUnframed ? '⚡ Un-framed' : '🌐 Direct'}</button>
-                        <button class="custom-web-btn" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: #fff; font-weight: bold; border: none; box-shadow: 0 2px 6px rgba(88,166,255,0.3);" onclick="openTabExternal('${escapeHtml(tab.url)}')" title="Open in new window or mobile browser">↗ Open Site</button>
+                        <button onclick="openTabExternal('${tab.id}', '${escapeHtml(tab.url)}')" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: #fff; border: none; padding: 14px 32px; border-radius: 8px; font-size: 1em; font-weight: bold; cursor: pointer; box-shadow: 0 4px 16px rgba(88,166,255,0.35); transition: transform 0.15s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+                            ${btnLabel}
+                        </button>
+                        ${splitTip}
                     </div>
 
-                    <div class="custom-web-frame-wrapper" style="flex: 1; min-height: 0;">
-                        <iframe id="iframe_${tab.id}" class="custom-web-frame" src="${getTabIframeSrc(tab)}" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen; camera; microphone"></iframe>
-                    </div>
-
+                    <!-- Chat dock stays at the bottom as normal -->
                     <div class="bottom-chat-dock" id="chatDock_${tab.id}" style="z-index: 10;">
                         <div class="dock-resize-handle" onmousedown="initDockResize(event, '${tab.id}')" ontouchstart="initDockResize(event, '${tab.id}')" title="Drag up or down to resize chat">
                             <div></div>
