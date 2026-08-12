@@ -3980,6 +3980,7 @@ function initMainDockResize(e) {
         document.addEventListener('mouseup', stopResize);
         e.preventDefault();
     }
+}
 // Track open external windows per tab so we can re-focus instead of opening duplicates
 const externalTabWindows = {};
 
