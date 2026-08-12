@@ -7,7 +7,7 @@ const BACKEND_URL = 'https://combinedchat-v4l0.onrender.com';
 // =====================
 
 // Ensure window.connection is always initialized
-let connection = new TikTokIOConnection();
+let connection = new TikTokIOConnection(BACKEND_URL);
 window.connection = connection;
 
 // HELPER: Bot detection
