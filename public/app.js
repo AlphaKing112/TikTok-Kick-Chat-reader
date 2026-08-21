@@ -3909,9 +3909,8 @@ function getTabPlatform(url) {
 function openAddPageModal() {
     $('#newTabTitle').val('');
     $('#newTabUrl').val('');
-    $('#newTabUnframeProxy').prop('checked', false);
     $('#addPageModalOverlay').css('display', 'flex');
-    setTimeout(() => $('#newTabTitle').focus(), 100);
+    setTimeout(() => $('#newTabUrl').focus(), 100);
 }
 
 function closeAddPageModal() {
@@ -3924,34 +3923,6 @@ function openEditPageModal() {
 
 function closeEditPageModal() {
     $('#editPageModalOverlay').hide();
-}
-
-function applyTabPreset(type) {
-    const parentHost = window.location.hostname || 'localhost';
-    const twitchCh = $('#twitchInput').val().trim() || localStorage.getItem('saved_twitch_channel') || 'crayong';
-    const kickCh = $('#kickLinkInput').val().trim() || localStorage.getItem('saved_kick_channel') || 'crayong';
-
-    if (type === 'streamelements') {
-        $('#newTabTitle').val('StreamElements Activity Feed');
-        $('#newTabUrl').val('https://streamelements.com/dashboard/YOUR_ACCOUNT_ID/activity/popout');
-        $('#newTabUnframeProxy').prop('checked', true);
-    } else if (type === 'twitch-stream') {
-        $('#newTabTitle').val('Twitch: ' + twitchCh);
-        $('#newTabUrl').val(`https://player.twitch.tv/?channel=${twitchCh}&parent=${parentHost}&muted=false`);
-        $('#newTabUnframeProxy').prop('checked', false);
-    } else if (type === 'twitch-chat') {
-        $('#newTabTitle').val('Twitch Chat: ' + twitchCh);
-        $('#newTabUrl').val(`https://www.twitch.tv/embed/${twitchCh}/chat?parent=${parentHost}&darkpopout`);
-        $('#newTabUnframeProxy').prop('checked', false);
-    } else if (type === 'kick') {
-        $('#newTabTitle').val('Kick Stream: ' + kickCh);
-        $('#newTabUrl').val(`https://kick.com/${kickCh}`);
-        $('#newTabUnframeProxy').prop('checked', false);
-    } else if (type === 'youtube') {
-        $('#newTabTitle').val('YouTube Live / Video');
-        $('#newTabUrl').val('https://www.youtube.com/watch?v=VIDEO_ID');
-        $('#newTabUnframeProxy').prop('checked', false);
-    }
 }
 
 function formatTabUrl(inputUrl) {
@@ -4006,36 +3977,54 @@ function formatTabUrl(inputUrl) {
 
 function getEmbedSource(tab) {
     if (!tab || !tab.url) return 'about:blank';
-    if (tab.useProxy) {
+    const u = tab.url.toLowerCase();
+    
+    // Direct embed URLs that allow framing natively:
+    const isNativeEmbed = u.includes('youtube.com/embed/') || 
+                         u.includes('player.twitch.tv/') || 
+                         u.includes('twitch.tv/embed/') ||
+                         u.includes('kick.com/popout/');
+
+    if (tab.useProxy === false && isNativeEmbed) {
+        return tab.url;
+    }
+
+    if (tab.useProxy || !isNativeEmbed) {
         return '/api/unframe-proxy?url=' + encodeURIComponent(tab.url);
     }
+
     return tab.url;
 }
 
 function saveNewTab() {
     const rawTitle = $('#newTabTitle').val().trim();
     const rawUrl = $('#newTabUrl').val().trim();
-    const useProxy = $('#newTabUnframeProxy').is(':checked');
 
     if (!rawUrl) {
-        showNotification('Please enter a valid website URL.', 'warning');
+        showNotification('Please paste a website URL.', 'warning');
         $('#newTabUrl').focus();
         return;
     }
 
     const url = formatTabUrl(rawUrl);
     const platform = getTabPlatform(url);
-    const title = rawTitle || platform.name;
+    
+    let defaultTitle = platform.name;
+    try {
+        const parsed = new URL(url);
+        defaultTitle = parsed.hostname.replace('www.', '');
+    } catch(e) {}
 
+    const title = rawTitle || defaultTitle;
     const tabId = 'custom_tab_' + Date.now();
-    const newTab = { id: tabId, title: title, url: url, useProxy: !!useProxy };
+    const newTab = { id: tabId, title: title, url: url, useProxy: true };
 
     customTabs.push(newTab);
     saveCustomTabsToStorage();
     renderTabs();
     closeAddPageModal();
     switchToTab(tabId);
-    showNotification(`Added "${title}" tab 🌐`, 'success');
+    showNotification(`Opened "${title}" 🌐`, 'success');
 }
 
 function editCustomTab(tabId) {

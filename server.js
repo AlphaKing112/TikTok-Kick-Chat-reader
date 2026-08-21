@@ -181,25 +181,37 @@ const handleUnframeProxy = async (req, res) => {
 
         const response = await axios.get(targetUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.9'
             },
-            timeout: 10000,
-            responseType: 'text'
+            timeout: 12000,
+            responseType: 'text',
+            maxRedirects: 5
         });
 
         let html = response.data;
         if (typeof html === 'string') {
             const origin = new URL(targetUrl).origin;
             const protocol = (req.headers['x-forwarded-proto'] || req.protocol).split(',')[0].trim();
-            const localProxyPrefix = `${protocol}://${req.get('host')}/api/proxy-asset?url=`;
+            const host = req.get('host');
+            const localProxyPrefix = `${protocol}://${host}/api/proxy-asset?url=`;
 
             const $ = cheerio.load(html);
 
             // Prepend base tag so relative URLs resolve against target origin
             if ($('head').length) {
                 $('head').prepend(`<base href="${origin}/">`);
+                $('head').prepend(`
+                    <script>
+                        try {
+                            // Neutralize frame-busters
+                            Object.defineProperty(window, 'self', { get: () => window.top, configurable: true });
+                            Object.defineProperty(window, 'top', { get: () => window.self, configurable: true });
+                            Object.defineProperty(window, 'parent', { get: () => window.self, configurable: true });
+                        } catch(e) {}
+                    </script>
+                `);
             } else {
                 $.root().prepend(`<base href="${origin}/">`);
             }
@@ -240,6 +252,18 @@ const handleUnframeProxy = async (req, res) => {
                 }
             });
 
+            // Rewrite anchor links to navigate within the proxy
+            $('a[href]').each((_, el) => {
+                const href = $(el).attr('href');
+                if (href && !href.startsWith('#') && !href.startsWith('javascript:') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+                    try {
+                        const absUrl = new URL(href, targetUrl).href;
+                        $(el).attr('href', `/api/unframe-proxy?url=${encodeURIComponent(absUrl)}`);
+                        $(el).attr('target', '_self');
+                    } catch (e) {}
+                }
+            });
+
             // Rewrite inline <style> url(...) calls
             $('style').each((_, el) => {
                 let css = $(el).html();
@@ -262,10 +286,19 @@ const handleUnframeProxy = async (req, res) => {
 
         res.removeHeader('X-Frame-Options');
         res.removeHeader('Content-Security-Policy');
+        res.removeHeader('Cross-Origin-Opener-Policy');
+        res.removeHeader('Cross-Origin-Embedder-Policy');
+        res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.send(html);
     } catch (e) {
-        res.status(500).send('Proxy Error: ' + e.message);
+        res.status(500).send(`
+            <div style="font-family: sans-serif; padding: 30px; text-align: center; background: #12131a; color: #e3e5eb; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <h2>Unable to Embed Page Directly</h2>
+                <p style="color: #8c92a6; max-width: 480px; margin-bottom: 20px;">This website enforces strict anti-embedding or require direct browser access.</p>
+                <a href="${req.query.url}" target="_blank" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: white; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-weight: bold;">Open in External Window ↗</a>
+            </div>
+        `);
     }
 };
 

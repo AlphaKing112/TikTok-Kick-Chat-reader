@@ -482,29 +482,11 @@
                 <button class="tab-modal-close" onclick="closeAddPageModal()">✕</button>
             </div>
             <div class="tab-modal-body">
-                <div style="margin-bottom: 12px;">
-                    <label style="margin-top: 0; margin-bottom: 6px;">Quick Presets:</label>
-                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                        <button type="button" class="tab-btn-secondary" style="padding: 4px 10px; font-size: 0.8em; display: flex; align-items: center; gap: 4px;" onclick="applyTabPreset('streamelements')">⚡ StreamElements</button>
-                        <button type="button" class="tab-btn-secondary" style="padding: 4px 10px; font-size: 0.8em; display: flex; align-items: center; gap: 4px;" onclick="applyTabPreset('twitch-stream')">💜 Twitch Stream</button>
-                        <button type="button" class="tab-btn-secondary" style="padding: 4px 10px; font-size: 0.8em; display: flex; align-items: center; gap: 4px;" onclick="applyTabPreset('twitch-chat')">💜 Twitch Chat</button>
-                        <button type="button" class="tab-btn-secondary" style="padding: 4px 10px; font-size: 0.8em; display: flex; align-items: center; gap: 4px;" onclick="applyTabPreset('kick')">💚 Kick Stream</button>
-                        <button type="button" class="tab-btn-secondary" style="padding: 4px 10px; font-size: 0.8em; display: flex; align-items: center; gap: 4px;" onclick="applyTabPreset('youtube')">🔴 YouTube</button>
-                    </div>
-                </div>
-
-                <label for="newTabTitle">Page Title</label>
-                <input type="text" id="newTabTitle" placeholder="e.g. StreamElements Feed, Kick Stream, YouTube" autocomplete="off">
-                
                 <label for="newTabUrl">Website URL</label>
-                <input type="url" id="newTabUrl" placeholder="https://..." autocomplete="off" onkeypress="if(event.key==='Enter') saveNewTab()">
+                <input type="text" id="newTabUrl" placeholder="Paste any website link (e.g. google.com, kick.com, youtube.com)" autocomplete="off" onkeypress="if(event.key==='Enter') saveNewTab()">
                 
-                <div style="margin-top: 10px; display: flex; align-items: center; gap: 6px;">
-                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.82em; color: #a0a5ba; margin: 0;">
-                        <input type="checkbox" id="newTabUnframeProxy" style="width:14px;height:14px;cursor:pointer;">
-                        <span>Use Unframe Proxy (Enable if site blocks embedding)</span>
-                    </label>
-                </div>
+                <label for="newTabTitle">Page Title (Optional)</label>
+                <input type="text" id="newTabTitle" placeholder="Leave blank to auto-detect title" autocomplete="off" onkeypress="if(event.key==='Enter') saveNewTab()">
             </div>
             <div class="tab-modal-footer">
                 <button class="tab-btn-secondary" onclick="closeAddPageModal()">Cancel</button>
