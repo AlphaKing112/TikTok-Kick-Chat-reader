@@ -4312,13 +4312,16 @@ function escapeHtml(text) {
         .replace(/'/g, '&#039;');
 }
 
-function initDockResize(e, tabId) {
-    const dock = document.getElementById(`chatDock_${tabId}`);
+function initMainDockResize(e) {
+    const dock = document.getElementById('mainDashboardBottomDock');
     if (!dock) return;
 
     let isResizing = true;
     let startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
     let startHeight = dock.getBoundingClientRect().height;
+
+    document.querySelectorAll('iframe').forEach(iframe => iframe.style.pointerEvents = 'none');
+    document.body.style.userSelect = 'none';
 
     function handleMove(moveEvent) {
         if (!isResizing) return;
@@ -4328,6 +4331,9 @@ function initDockResize(e, tabId) {
 
         if (newHeight > 80 && newHeight < window.innerHeight * 0.90) {
             dock.style.setProperty('height', newHeight + 'px', 'important');
+            try {
+                localStorage.setItem('mainDashboardDockHeight', newHeight);
+            } catch (err) {}
         }
 
         if (moveEvent.type.includes('touch') && moveEvent.cancelable) {
@@ -4337,6 +4343,57 @@ function initDockResize(e, tabId) {
 
     function stopResize() {
         isResizing = false;
+        document.querySelectorAll('iframe').forEach(iframe => iframe.style.pointerEvents = '');
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', stopResize);
+        document.removeEventListener('touchmove', handleMove);
+        document.removeEventListener('touchend', stopResize);
+    }
+
+    if (e.type.includes('touch')) {
+        document.addEventListener('touchmove', handleMove, { passive: false });
+        document.addEventListener('touchend', stopResize);
+    } else {
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', stopResize);
+        e.preventDefault();
+    }
+}
+
+function initDockResize(e, tabId) {
+    const dock = document.getElementById(`chatDock_${tabId}`);
+    if (!dock) return;
+
+    let isResizing = true;
+    let startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+    let startHeight = dock.getBoundingClientRect().height;
+
+    document.querySelectorAll('iframe').forEach(iframe => iframe.style.pointerEvents = 'none');
+    document.body.style.userSelect = 'none';
+
+    function handleMove(moveEvent) {
+        if (!isResizing) return;
+        const currentY = moveEvent.type.includes('touch') ? moveEvent.touches[0].clientY : moveEvent.clientY;
+        const deltaY = startY - currentY;
+        const newHeight = startHeight + deltaY;
+
+        if (newHeight > 80 && newHeight < window.innerHeight * 0.90) {
+            dock.style.setProperty('height', newHeight + 'px', 'important');
+            try {
+                localStorage.setItem(`dockHeight_${tabId}`, newHeight);
+            } catch (err) {}
+        }
+
+        if (moveEvent.type.includes('touch') && moveEvent.cancelable) {
+            moveEvent.preventDefault();
+        }
+    }
+
+    function stopResize() {
+        isResizing = false;
+        document.querySelectorAll('iframe').forEach(iframe => iframe.style.pointerEvents = '');
+        document.body.style.userSelect = '';
         document.removeEventListener('mousemove', handleMove);
         document.removeEventListener('mouseup', stopResize);
         document.removeEventListener('touchmove', handleMove);
@@ -4387,6 +4444,16 @@ function setupMobileTabSwiping() {
 $(document).ready(function() {
     loadSavedCustomTabs();
     renderTabs();
+    // Restore saved dock height if present
+    try {
+        const savedMainHeight = localStorage.getItem('mainDashboardDockHeight');
+        if (savedMainHeight) {
+            const dock = document.getElementById('mainDashboardBottomDock');
+            if (dock) {
+                dock.style.setProperty('height', savedMainHeight + 'px', 'important');
+            }
+        }
+    } catch (e) {}
     // Always start on main tab
     switchToTab('main');
     setupMobileTabSwiping();
