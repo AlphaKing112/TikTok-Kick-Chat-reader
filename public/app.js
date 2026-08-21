@@ -13,12 +13,30 @@ window.connection = connection;
 // HELPER: Bot detection
 function isBotMessage(username) {
     if (!username) return false;
-    const hideBots = (window.settings && window.settings.hideBots === '1') || 
-                     ($('#filterHideBots').length && $('#filterHideBots').is(':checked'));
+    
+    let hideBots = true;
+    if (window.settings) {
+        if (window.settings.hideBots === '0' || window.settings.hideBots === 'false' || window.settings.hideBots === false) {
+            hideBots = false;
+        } else if (window.settings.hideBots === '1' || window.settings.hideBots === 'true' || window.settings.hideBots === true) {
+            hideBots = true;
+        }
+    } else if ($('#overlayHideBots').length) {
+        hideBots = $('#overlayHideBots').is(':checked');
+    } else if ($('#filterHideBots').length) {
+        hideBots = $('#filterHideBots').is(':checked');
+    }
     if (!hideBots) return false;
     
-    const bots = ['nightbot', 'streamelements', 'streamlabs', 'moobot', 'wizebot', 'fossabot', 'commanderroot', 'kofibot', 'botrix', 'soundalerts', 'pretzelrocks', 'sery_bot'];
-    return bots.includes(username.toLowerCase());
+    const u = String(username).toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const bots = [
+        'nightbot', 'streamelements', 'streamlabs', 'moobot', 'wizebot', 
+        'fossabot', 'commanderroot', 'kofibot', 'botrix', 'botrixofficial',
+        'soundalerts', 'pretzelrocks', 'sery_bot', 'serybot', 'creatisbot',
+        'kickbot', 'stay_hydrated_bot', 'streamcord', 'buttsbot', 'songlistbot',
+        'restreambot', 'cozybot', 'botrix_kick', 'botrix_twitch'
+    ];
+    return bots.includes(u) || u.startsWith('botrix') || u.includes('botrix') || u.includes('streamelement') || u.includes('nightbot');
 }
 
 // HELPER: Message disappear logic (intercepts jQuery append)
@@ -2062,6 +2080,9 @@ $(document).ready(function() {
             return;
         }
         if (!msg.channelSlug || msg.channelSlug !== currentKickChannel) {
+            return;
+        }
+        if (isBotMessage(msg.sender?.username) || isBotMessage(msg.sender?.slug)) {
             return;
         }
         

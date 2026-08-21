@@ -78,6 +78,13 @@
                 .tiktok-message, .kick-message, .twitch-message, .chatcontainer div, .eventcontainer div, .kick-gifted-sub, .kick-gifted-sub-item {
                     text-shadow: 2px 2px 4px black, -2px -2px 4px black, 2px -2px 4px black, -2px 2px 4px black, 0px 0px 8px black !important;
                 }
+                [class*="kick-user-botrix"], [class*="twitch-username-botrix"],
+                [class*="twitch-username-nightbot"], [class*="twitch-username-streamelements"],
+                [class*="twitch-username-streamlabs"], [class*="twitch-username-moobot"],
+                [class*="twitch-username-wizebot"], [class*="twitch-username-fossabot"],
+                [class*="twitch-username-sery_bot"] {
+                    display: none !important;
+                }
             `;
 
             if (window.settings.bgColor) {
