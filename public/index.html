@@ -504,18 +504,11 @@
             </div>
             <div class="tab-modal-body">
                 <input type="hidden" id="editTabId">
-                <label for="editTabTitle">Page Title</label>
-                <input type="text" id="editTabTitle" placeholder="Page title" autocomplete="off">
-                
                 <label for="editTabUrl">Website URL</label>
-                <input type="url" id="editTabUrl" placeholder="https://..." autocomplete="off" onkeypress="if(event.key==='Enter') saveEditedTab()">
+                <input type="text" id="editTabUrl" placeholder="https://..." autocomplete="off" onkeypress="if(event.key==='Enter') saveEditedTab()">
                 
-                <div style="margin-top: 10px; display: flex; align-items: center; gap: 6px;">
-                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.82em; color: #a0a5ba; margin: 0;">
-                        <input type="checkbox" id="editTabUnframeProxy" style="width:14px;height:14px;cursor:pointer;">
-                        <span>Use Unframe Proxy</span>
-                    </label>
-                </div>
+                <label for="editTabTitle">Page Title</label>
+                <input type="text" id="editTabTitle" placeholder="Page title" autocomplete="off" onkeypress="if(event.key==='Enter') saveEditedTab()">
             </div>
             <div class="tab-modal-footer">
                 <button class="tab-btn-secondary" onclick="closeEditPageModal()">Cancel</button>

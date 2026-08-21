@@ -3977,22 +3977,6 @@ function formatTabUrl(inputUrl) {
 
 function getEmbedSource(tab) {
     if (!tab || !tab.url) return 'about:blank';
-    const u = tab.url.toLowerCase();
-    
-    // Direct embed URLs that allow framing natively:
-    const isNativeEmbed = u.includes('youtube.com/embed/') || 
-                         u.includes('player.twitch.tv/') || 
-                         u.includes('twitch.tv/embed/') ||
-                         u.includes('kick.com/popout/');
-
-    if (tab.useProxy === false && isNativeEmbed) {
-        return tab.url;
-    }
-
-    if (tab.useProxy || !isNativeEmbed) {
-        return '/api/unframe-proxy?url=' + encodeURIComponent(tab.url);
-    }
-
     return tab.url;
 }
 
@@ -4017,7 +4001,7 @@ function saveNewTab() {
 
     const title = rawTitle || defaultTitle;
     const tabId = 'custom_tab_' + Date.now();
-    const newTab = { id: tabId, title: title, url: url, useProxy: true };
+    const newTab = { id: tabId, title: title, url: url };
 
     customTabs.push(newTab);
     saveCustomTabsToStorage();
@@ -4034,7 +4018,6 @@ function editCustomTab(tabId) {
     $('#editTabId').val(tab.id);
     $('#editTabTitle').val(tab.title);
     $('#editTabUrl').val(tab.url);
-    $('#editTabUnframeProxy').prop('checked', !!tab.useProxy);
     openEditPageModal();
 }
 
@@ -4048,7 +4031,6 @@ function saveEditedTab() {
 
     const newTitle = $('#editTabTitle').val().trim() || 'Website';
     const newRawUrl = $('#editTabUrl').val().trim();
-    const newProxy = $('#editTabUnframeProxy').is(':checked');
 
     if (!newRawUrl) {
         showNotification('URL cannot be empty.', 'warning');
@@ -4057,7 +4039,6 @@ function saveEditedTab() {
 
     tab.title = newTitle;
     tab.url = formatTabUrl(newRawUrl);
-    tab.useProxy = newProxy;
 
     saveCustomTabsToStorage();
     closeEditPageModal();
@@ -4073,7 +4054,7 @@ function saveEditedTab() {
     } else {
         renderTabs();
     }
-    showNotification('Tab updated successfully! ✏️', 'success');
+    showNotification('Tab updated! ✏️', 'success');
 }
 
 function reloadTabFrame(tabId) {
@@ -4086,21 +4067,6 @@ function reloadTabFrame(tabId) {
         }, 100);
         showNotification('Reloaded webpage 🔄', 'info');
     }
-}
-
-function toggleProxyTab(tabId) {
-    const tab = customTabs.find(t => t.id === tabId);
-    if (!tab) return;
-
-    tab.useProxy = !tab.useProxy;
-    saveCustomTabsToStorage();
-
-    const iframe = document.getElementById(`frame_${tabId}`);
-    if (iframe) {
-        iframe.src = getEmbedSource(tab);
-    }
-    $(`#tab_view_${tabId} .proxy-toggle-btn`).html(`🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}`);
-    showNotification(tab.useProxy ? 'Unframe Proxy Enabled 🛡️' : 'Direct Embed Enabled 🌐', 'info');
 }
 
 function removeTab(tabId, event) {
@@ -4262,8 +4228,7 @@ function renderTabs() {
                             <span style="color: #727a94; font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${escapeHtml(tab.url)}</span>
                         </div>
                         <button class="custom-web-btn" onclick="reloadTabFrame('${tab.id}')" title="Reload Webpage">🔄 Reload</button>
-                        <button class="custom-web-btn proxy-toggle-btn" onclick="toggleProxyTab('${tab.id}')" title="Toggle Unframe Proxy (Bypasses embed restrictions)">🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}</button>
-                        <button class="custom-web-btn" onclick="openTabExternal('${tab.id}', '${escapeHtml(tab.url)}')" title="Open in Split Screen / External Window">↗ Popout</button>
+                        <button class="custom-web-btn" onclick="openTabExternal('${tab.id}', '${escapeHtml(tab.url)}')" title="Open in Popout / Split Window">↗ Popout</button>
                         <button class="custom-web-btn" onclick="editCustomTab('${tab.id}')" title="Edit Tab Title or URL">✏️ Edit</button>
                         <button class="custom-web-btn" onclick="removeTab('${tab.id}', event)" title="Close Tab" style="color: #ff5555;">✕</button>
                     </div>
