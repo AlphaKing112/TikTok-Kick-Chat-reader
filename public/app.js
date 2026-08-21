@@ -3869,15 +3869,7 @@ function loadSavedCustomTabs() {
         const saved = localStorage.getItem('combinedchat_custom_tabs');
         if (saved) {
             const all = JSON.parse(saved);
-            // Filter out any previously saved YouTube homepage/channel tabs that can never embed
-            customTabs = all.filter(tab => {
-                if (!tab || !tab.url) return false;
-                return !isYouTubeEmbedBlockedUrl(tab.url);
-            });
-            // Persist the cleaned list if anything was removed
-            if (customTabs.length !== all.length) {
-                saveCustomTabsToStorage();
-            }
+            customTabs = Array.isArray(all) ? all.filter(tab => tab && tab.id && tab.url) : [];
         }
     } catch (e) {
         console.error('Failed to load custom tabs', e);
