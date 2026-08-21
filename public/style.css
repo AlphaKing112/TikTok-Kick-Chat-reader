@@ -381,12 +381,13 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 .kick-message .platform-icon,
 .tiktok-message .platform-icon,
 .platform-icon {
-    width: 16px !important;
-    height: 16px !important;
+    width: 18px !important;
+    height: 18px !important;
     vertical-align: middle !important;
-    margin-right: 4px !important;
+    margin-right: 5px !important;
     display: inline-block !important;
     flex-shrink: 0;
+    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.8));
 }
 
 .twitch-badge-icon {

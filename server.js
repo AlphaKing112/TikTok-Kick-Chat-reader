@@ -127,7 +127,8 @@ const io = new Server(httpServer, {
     }
 });
 
-
+// Handle favicon requests cleanly
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Serve static files with explicit MIME types
 app.use(express.static('public', {
