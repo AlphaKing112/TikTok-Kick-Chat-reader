@@ -3932,22 +3932,34 @@ function formatTabUrl(inputUrl) {
 
     try {
         const parsed = new URL(url);
-        const host = parsed.hostname.replace('www.', '').toLowerCase();
+        const rawHost = parsed.hostname.toLowerCase();
+        const host = rawHost.replace(/^(www\.|m\.|music\.|gaming\.)/, '');
 
-        // Auto-convert YouTube watch/shorts/live URLs to embeddable /embed/ URLs
+        // Auto-convert ALL YouTube URLs (m.youtube.com, youtube.com, youtu.be, shorts, live, search, playlists)
         if (host === 'youtube.com' || host === 'youtu.be') {
             let videoId = null;
             if (host === 'youtu.be') {
                 videoId = parsed.pathname.replace(/^\//, '').split('/')[0];
             } else if (parsed.pathname.startsWith('/watch')) {
                 videoId = parsed.searchParams.get('v');
-            } else if (parsed.pathname.startsWith('/shorts/') || parsed.pathname.startsWith('/live/')) {
+            } else if (parsed.pathname.startsWith('/shorts/') || parsed.pathname.startsWith('/live/') || parsed.pathname.startsWith('/v/')) {
                 videoId = parsed.pathname.split('/')[2];
             } else if (parsed.pathname.startsWith('/embed/')) {
-                videoId = null;
+                videoId = null; // already an embed URL
             }
+
+            const listId = parsed.searchParams.get('list');
+            const searchQuery = parsed.searchParams.get('search_query');
+
             if (videoId) {
                 url = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
+            } else if (listId) {
+                url = `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(listId)}`;
+            } else if (searchQuery) {
+                url = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(searchQuery)}`;
+            } else if (parsed.pathname === '/' || parsed.pathname === '') {
+                // If user pasted generic homepage (like https://m.youtube.com/), default to YouTube trending embed
+                url = `https://www.youtube.com/embed?listType=user_uploads&list=YouTube`;
             }
         }
 
@@ -3960,6 +3972,18 @@ function formatTabUrl(inputUrl) {
             } else if ((pathParts.length === 2 && pathParts[1] === 'chat') || (pathParts.length === 3 && pathParts[0] === 'popout' && pathParts[2] === 'chat')) {
                 const ch = pathParts.length === 2 ? pathParts[0] : pathParts[1];
                 url = `https://www.twitch.tv/embed/${ch}/chat?parent=${parentHost}&darkpopout`;
+            }
+        }
+
+        // Auto-convert Kick URLs
+        if (host === 'kick.com') {
+            const pathParts = parsed.pathname.split('/').filter(Boolean);
+            if (pathParts.length === 1 && !['browse', 'categories', 'following'].includes(pathParts[0].toLowerCase())) {
+                const ch = pathParts[0];
+                url = `https://player.kick.com/${ch}`;
+            } else if (pathParts.length >= 2 && pathParts.includes('chat')) {
+                const ch = pathParts[0] === 'popout' ? pathParts[1] : pathParts[0];
+                url = `https://kick.com/popout/${ch}/chat`;
             }
         }
     } catch (e) {}
