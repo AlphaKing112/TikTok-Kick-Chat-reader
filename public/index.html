@@ -482,19 +482,62 @@
                 <button class="tab-modal-close" onclick="closeAddPageModal()">✕</button>
             </div>
             <div class="tab-modal-body">
-                <p style="margin: 0 0 14px 0; font-size: 0.88em; color: #a0a5ba; line-height: 1.4;">Enter a title and website URL. For StreamElements, use your <b>Popout Activity Feed URL</b> (e.g. <code>https://streamelements.com/dashboard/ID/activity/popout</code>) or Overlay URL.</p>
+                <div style="margin-bottom: 12px;">
+                    <label style="margin-top: 0; margin-bottom: 6px;">Quick Presets:</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        <button type="button" class="tab-btn-secondary" style="padding: 4px 10px; font-size: 0.8em; display: flex; align-items: center; gap: 4px;" onclick="applyTabPreset('streamelements')">⚡ StreamElements</button>
+                        <button type="button" class="tab-btn-secondary" style="padding: 4px 10px; font-size: 0.8em; display: flex; align-items: center; gap: 4px;" onclick="applyTabPreset('twitch-stream')">💜 Twitch Stream</button>
+                        <button type="button" class="tab-btn-secondary" style="padding: 4px 10px; font-size: 0.8em; display: flex; align-items: center; gap: 4px;" onclick="applyTabPreset('twitch-chat')">💜 Twitch Chat</button>
+                        <button type="button" class="tab-btn-secondary" style="padding: 4px 10px; font-size: 0.8em; display: flex; align-items: center; gap: 4px;" onclick="applyTabPreset('kick')">💚 Kick Stream</button>
+                        <button type="button" class="tab-btn-secondary" style="padding: 4px 10px; font-size: 0.8em; display: flex; align-items: center; gap: 4px;" onclick="applyTabPreset('youtube')">🔴 YouTube</button>
+                    </div>
+                </div>
+
                 <label for="newTabTitle">Page Title</label>
                 <input type="text" id="newTabTitle" placeholder="e.g. StreamElements Feed, Kick Stream, YouTube" autocomplete="off">
                 
                 <label for="newTabUrl">Website URL</label>
-                <input type="url" id="newTabUrl" placeholder="https://streamelements.com/dashboard/.../activity/popout" autocomplete="off" onkeypress="if(event.key==='Enter') saveNewTab()">
+                <input type="url" id="newTabUrl" placeholder="https://..." autocomplete="off" onkeypress="if(event.key==='Enter') saveNewTab()">
                 
-                <!-- Proxy mode is auto-detected server-side; hidden input keeps saveNewTab() compatible -->
-                <input type="checkbox" id="newTabUnframeProxy" style="display: none;">
+                <div style="margin-top: 10px; display: flex; align-items: center; gap: 6px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.82em; color: #a0a5ba; margin: 0;">
+                        <input type="checkbox" id="newTabUnframeProxy" style="width:14px;height:14px;cursor:pointer;">
+                        <span>Use Unframe Proxy (Enable if site blocks embedding)</span>
+                    </label>
+                </div>
             </div>
             <div class="tab-modal-footer">
                 <button class="tab-btn-secondary" onclick="closeAddPageModal()">Cancel</button>
-                <button class="tab-btn-primary" onclick="saveNewTab()">Done</button>
+                <button class="tab-btn-primary" onclick="saveNewTab()">Add Page</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Editing Custom Page -->
+    <div id="editPageModalOverlay" class="tab-modal-overlay" style="display: none;" onclick="if(event.target===this) closeEditPageModal()">
+        <div class="tab-modal-card">
+            <div class="tab-modal-header">
+                <h3><span>✏️</span> Edit Website Page</h3>
+                <button class="tab-modal-close" onclick="closeEditPageModal()">✕</button>
+            </div>
+            <div class="tab-modal-body">
+                <input type="hidden" id="editTabId">
+                <label for="editTabTitle">Page Title</label>
+                <input type="text" id="editTabTitle" placeholder="Page title" autocomplete="off">
+                
+                <label for="editTabUrl">Website URL</label>
+                <input type="url" id="editTabUrl" placeholder="https://..." autocomplete="off" onkeypress="if(event.key==='Enter') saveEditedTab()">
+                
+                <div style="margin-top: 10px; display: flex; align-items: center; gap: 6px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.82em; color: #a0a5ba; margin: 0;">
+                        <input type="checkbox" id="editTabUnframeProxy" style="width:14px;height:14px;cursor:pointer;">
+                        <span>Use Unframe Proxy</span>
+                    </label>
+                </div>
+            </div>
+            <div class="tab-modal-footer">
+                <button class="tab-btn-secondary" onclick="closeEditPageModal()">Cancel</button>
+                <button class="tab-btn-primary" onclick="saveEditedTab()">Save Changes</button>
             </div>
         </div>
     </div>

@@ -3893,15 +3893,65 @@ function saveCustomTabsToStorage() {
     }
 }
 
+function getTabPlatform(url) {
+    if (!url) return { icon: '🌐', name: 'Web', color: '#58a6ff' };
+    const u = url.toLowerCase();
+    if (u.includes('youtube.com') || u.includes('youtu.be')) return { icon: '🔴', name: 'YouTube', color: '#ff0000' };
+    if (u.includes('twitch.tv')) return { icon: '💜', name: 'Twitch', color: '#9146FF' };
+    if (u.includes('kick.com')) return { icon: '💚', name: 'Kick', color: '#53fc18' };
+    if (u.includes('streamelements.com')) return { icon: '⚡', name: 'StreamElements', color: '#ff5c5c' };
+    if (u.includes('spotify.com')) return { icon: '🟢', name: 'Spotify', color: '#1db954' };
+    if (u.includes('discord.com')) return { icon: '💬', name: 'Discord', color: '#5865F2' };
+    if (u.includes('tiktok.com')) return { icon: '🎵', name: 'TikTok', color: '#fe2c55' };
+    return { icon: '🌐', name: 'Web', color: '#58a6ff' };
+}
+
 function openAddPageModal() {
     $('#newTabTitle').val('');
     $('#newTabUrl').val('');
+    $('#newTabUnframeProxy').prop('checked', false);
     $('#addPageModalOverlay').css('display', 'flex');
     setTimeout(() => $('#newTabTitle').focus(), 100);
 }
 
 function closeAddPageModal() {
     $('#addPageModalOverlay').hide();
+}
+
+function openEditPageModal() {
+    $('#editPageModalOverlay').css('display', 'flex');
+}
+
+function closeEditPageModal() {
+    $('#editPageModalOverlay').hide();
+}
+
+function applyTabPreset(type) {
+    const parentHost = window.location.hostname || 'localhost';
+    const twitchCh = $('#twitchInput').val().trim() || localStorage.getItem('saved_twitch_channel') || 'crayong';
+    const kickCh = $('#kickLinkInput').val().trim() || localStorage.getItem('saved_kick_channel') || 'crayong';
+
+    if (type === 'streamelements') {
+        $('#newTabTitle').val('StreamElements Activity Feed');
+        $('#newTabUrl').val('https://streamelements.com/dashboard/YOUR_ACCOUNT_ID/activity/popout');
+        $('#newTabUnframeProxy').prop('checked', true);
+    } else if (type === 'twitch-stream') {
+        $('#newTabTitle').val('Twitch: ' + twitchCh);
+        $('#newTabUrl').val(`https://player.twitch.tv/?channel=${twitchCh}&parent=${parentHost}&muted=false`);
+        $('#newTabUnframeProxy').prop('checked', false);
+    } else if (type === 'twitch-chat') {
+        $('#newTabTitle').val('Twitch Chat: ' + twitchCh);
+        $('#newTabUrl').val(`https://www.twitch.tv/embed/${twitchCh}/chat?parent=${parentHost}&darkpopout`);
+        $('#newTabUnframeProxy').prop('checked', false);
+    } else if (type === 'kick') {
+        $('#newTabTitle').val('Kick Stream: ' + kickCh);
+        $('#newTabUrl').val(`https://kick.com/${kickCh}`);
+        $('#newTabUnframeProxy').prop('checked', false);
+    } else if (type === 'youtube') {
+        $('#newTabTitle').val('YouTube Live / Video');
+        $('#newTabUrl').val('https://www.youtube.com/watch?v=VIDEO_ID');
+        $('#newTabUnframeProxy').prop('checked', false);
+    }
 }
 
 function formatTabUrl(inputUrl) {
@@ -3915,14 +3965,13 @@ function formatTabUrl(inputUrl) {
         }
     }
 
-    // Auto-convert YouTube watch/shorts/live URLs to embeddable /embed/ URLs
-    // youtube.com/watch?v=ID → youtube.com/embed/ID
-    // youtu.be/ID → youtube.com/embed/ID
-    // youtube.com/shorts/ID → youtube.com/embed/ID
-    // youtube.com/live/ID → youtube.com/embed/ID
+    const parentHost = window.location.hostname || 'localhost';
+
     try {
         const parsed = new URL(url);
-        const host = parsed.hostname.replace('www.', '');
+        const host = parsed.hostname.replace('www.', '').toLowerCase();
+
+        // Auto-convert YouTube watch/shorts/live URLs to embeddable /embed/ URLs
         if (host === 'youtube.com' || host === 'youtu.be') {
             let videoId = null;
             if (host === 'youtu.be') {
@@ -3932,11 +3981,22 @@ function formatTabUrl(inputUrl) {
             } else if (parsed.pathname.startsWith('/shorts/') || parsed.pathname.startsWith('/live/')) {
                 videoId = parsed.pathname.split('/')[2];
             } else if (parsed.pathname.startsWith('/embed/')) {
-                // Already an embed URL, leave as-is
                 videoId = null;
             }
             if (videoId) {
-                url = `https://www.youtube.com/embed/${videoId}?autoplay=0`;
+                url = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
+            }
+        }
+
+        // Auto-convert Twitch channel links to Twitch embed player
+        if (host === 'twitch.tv') {
+            const pathParts = parsed.pathname.split('/').filter(Boolean);
+            if (pathParts.length === 1 && !['directory', 'videos', 'settings', 'p'].includes(pathParts[0].toLowerCase())) {
+                const ch = pathParts[0];
+                url = `https://player.twitch.tv/?channel=${ch}&parent=${parentHost}&muted=false`;
+            } else if ((pathParts.length === 2 && pathParts[1] === 'chat') || (pathParts.length === 3 && pathParts[0] === 'popout' && pathParts[2] === 'chat')) {
+                const ch = pathParts.length === 2 ? pathParts[0] : pathParts[1];
+                url = `https://www.twitch.tv/embed/${ch}/chat?parent=${parentHost}&darkpopout`;
             }
         }
     } catch (e) {}
@@ -3944,45 +4004,115 @@ function formatTabUrl(inputUrl) {
     return url;
 }
 
-function isYouTubeEmbedBlockedUrl(url) {
-    // Returns true if this is a YouTube URL that can never be embedded
-    // (homepage, channel, search, playlist without video, etc.)
-    try {
-        const parsed = new URL(url);
-        const host = parsed.hostname.replace('www.', '');
-        if (host !== 'youtube.com' && host !== 'youtu.be') return false;
-        // Already an embed URL — fine
-        if (parsed.pathname.startsWith('/embed/')) return false;
-        // Has a video ID that was or will be converted — fine
-        if (parsed.searchParams.get('v')) return false;
-        if (host === 'youtu.be' && parsed.pathname.replace(/^\//, '').length > 0) return false;
-        if (parsed.pathname.startsWith('/shorts/') || parsed.pathname.startsWith('/live/')) return false;
-        // Everything else: homepage, /c/, /channel/, /results, etc.
-        return true;
-    } catch (e) { return false; }
+function getEmbedSource(tab) {
+    if (!tab || !tab.url) return 'about:blank';
+    if (tab.useProxy) {
+        return '/api/unframe-proxy?url=' + encodeURIComponent(tab.url);
+    }
+    return tab.url;
 }
 
 function saveNewTab() {
-    const title = $('#newTabTitle').val().trim() || 'New Website';
-    const rawUrl = $('#newTabUrl').val();
-    const url = formatTabUrl(rawUrl);
+    const rawTitle = $('#newTabTitle').val().trim();
+    const rawUrl = $('#newTabUrl').val().trim();
+    const useProxy = $('#newTabUnframeProxy').is(':checked');
 
-    if (!rawUrl.trim()) {
-        alert('Please enter a valid website URL.');
+    if (!rawUrl) {
+        showNotification('Please enter a valid website URL.', 'warning');
         $('#newTabUrl').focus();
         return;
     }
 
+    const url = formatTabUrl(rawUrl);
+    const platform = getTabPlatform(url);
+    const title = rawTitle || platform.name;
+
     const tabId = 'custom_tab_' + Date.now();
-    const newTab = { id: tabId, title: title, url: url };
+    const newTab = { id: tabId, title: title, url: url, useProxy: !!useProxy };
 
     customTabs.push(newTab);
     saveCustomTabsToStorage();
     renderTabs();
     closeAddPageModal();
     switchToTab(tabId);
+    showNotification(`Added "${title}" tab 🌐`, 'success');
 }
 
+function editCustomTab(tabId) {
+    const tab = customTabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    $('#editTabId').val(tab.id);
+    $('#editTabTitle').val(tab.title);
+    $('#editTabUrl').val(tab.url);
+    $('#editTabUnframeProxy').prop('checked', !!tab.useProxy);
+    openEditPageModal();
+}
+
+function saveEditedTab() {
+    const tabId = $('#editTabId').val();
+    const tab = customTabs.find(t => t.id === tabId);
+    if (!tab) {
+        closeEditPageModal();
+        return;
+    }
+
+    const newTitle = $('#editTabTitle').val().trim() || 'Website';
+    const newRawUrl = $('#editTabUrl').val().trim();
+    const newProxy = $('#editTabUnframeProxy').is(':checked');
+
+    if (!newRawUrl) {
+        showNotification('URL cannot be empty.', 'warning');
+        return;
+    }
+
+    tab.title = newTitle;
+    tab.url = formatTabUrl(newRawUrl);
+    tab.useProxy = newProxy;
+
+    saveCustomTabsToStorage();
+    closeEditPageModal();
+    
+    // Update existing DOM elements
+    $(`#tab_header_${tabId} .tab-title-text`).text(tab.title);
+    $(`#tab_view_${tabId} .custom-url-bar span:first-child`).text(tab.title);
+    $(`#tab_view_${tabId} .custom-url-bar span:last-child`).text(tab.url);
+    
+    const iframe = document.getElementById(`frame_${tabId}`);
+    if (iframe) {
+        iframe.src = getEmbedSource(tab);
+    } else {
+        renderTabs();
+    }
+    showNotification('Tab updated successfully! ✏️', 'success');
+}
+
+function reloadTabFrame(tabId) {
+    const tab = customTabs.find(t => t.id === tabId);
+    const iframe = document.getElementById(`frame_${tabId}`);
+    if (iframe && tab) {
+        iframe.src = 'about:blank';
+        setTimeout(() => {
+            iframe.src = getEmbedSource(tab);
+        }, 100);
+        showNotification('Reloaded webpage 🔄', 'info');
+    }
+}
+
+function toggleProxyTab(tabId) {
+    const tab = customTabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    tab.useProxy = !tab.useProxy;
+    saveCustomTabsToStorage();
+
+    const iframe = document.getElementById(`frame_${tabId}`);
+    if (iframe) {
+        iframe.src = getEmbedSource(tab);
+    }
+    $(`#tab_view_${tabId} .proxy-toggle-btn`).html(`🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}`);
+    showNotification(tab.useProxy ? 'Unframe Proxy Enabled 🛡️' : 'Direct Embed Enabled 🌐', 'info');
+}
 
 function removeTab(tabId, event) {
     if (event) {
@@ -4005,6 +4135,7 @@ function removeTab(tabId, event) {
     if (activeTabId === tabId) {
         switchToTab('main');
     }
+    showNotification('Tab closed ✕', 'info');
 }
 
 function getAllTabIds() {
@@ -4075,62 +4206,11 @@ function switchToTab(tabId) {
     }
 }
 
-function initMainDockResize(e) {
-    const dock = document.getElementById('mainDashboardBottomDock');
-    if (!dock) return;
-
-    let isResizing = true;
-    let startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-    let startHeight = dock.getBoundingClientRect().height;
-
-    function handleMove(moveEvent) {
-        if (!isResizing) return;
-        const currentY = moveEvent.type.includes('touch') ? moveEvent.touches[0].clientY : moveEvent.clientY;
-        const deltaY = startY - currentY;
-        const newHeight = startHeight + deltaY;
-
-        if (newHeight > 80 && newHeight < window.innerHeight * 0.90) {
-            dock.style.setProperty('height', newHeight + 'px', 'important');
-        }
-
-        if (moveEvent.type.includes('touch') && moveEvent.cancelable) {
-            moveEvent.preventDefault();
-        }
-    }
-
-    function stopResize() {
-        isResizing = false;
-        document.removeEventListener('mousemove', handleMove);
-        document.removeEventListener('mouseup', stopResize);
-        document.removeEventListener('touchmove', handleMove);
-        document.removeEventListener('touchend', stopResize);
-    }
-
-    if (e.type.includes('touch')) {
-        document.addEventListener('touchmove', handleMove, { passive: false });
-        document.addEventListener('touchend', stopResize);
-    } else {
-        document.addEventListener('mousemove', handleMove);
-        document.addEventListener('mouseup', stopResize);
-        e.preventDefault();
-    }
-}
 // Track open external windows per tab so we can re-focus instead of opening duplicates
 const externalTabWindows = {};
 
 function isMobileDevice() {
     return /Android|iPhone|iPad|iPod|Samsung|Mobile/i.test(navigator.userAgent) ||
-           (navigator.maxTouchPoints > 1 && /MacIntel/.test(navigator.platform)); // iPadOS
-}
-
-function isIPhone() {
-    // iPhone — no split screen support in Safari
-    return /iPhone/i.test(navigator.userAgent);
-}
-
-function isIPad() {
-    // iPad supports Split View in Safari
-    return /iPad/i.test(navigator.userAgent) ||
            (navigator.maxTouchPoints > 1 && /MacIntel/.test(navigator.platform));
 }
 
@@ -4138,19 +4218,16 @@ function openTabExternal(tabId, url) {
     if (!url) return;
 
     if (isMobileDevice()) {
-        // On mobile, just open in a new tab — the user can split via OS
         window.open(url, '_blank');
         return;
     }
 
-    // Desktop: open positioned on the right half of the screen
     const w = Math.floor(screen.availWidth / 2);
     const h = screen.availHeight;
     const left = Math.floor(screen.availWidth / 2);
     const top = 0;
     const winName = 'custom_tab_win_' + tabId;
 
-    // If already open and not closed, focus it
     if (externalTabWindows[tabId] && !externalTabWindows[tabId].closed) {
         externalTabWindows[tabId].focus();
         return;
@@ -4172,9 +4249,10 @@ function renderTabs() {
 
     customTabs.forEach(tab => {
         const isActive = activeTabId === tab.id;
+        const platform = getTabPlatform(tab.url);
         const tabHeader = $(`
             <div class="browser-tab ${isActive ? 'active' : ''}" id="tab_header_${tab.id}" onclick="switchToTab('${tab.id}')" title="${tab.title}\n${tab.url}">
-                <span class="tab-icon">🌐</span>
+                <span class="tab-icon">${platform.icon}</span>
                 <span class="tab-title-text">${escapeHtml(tab.title)}</span>
                 <span class="tab-close-btn" onclick="removeTab('${tab.id}', event)" title="Close tab">✕</span>
             </div>
@@ -4182,59 +4260,38 @@ function renderTabs() {
         tabsListContainer.append(tabHeader);
 
         if (!$(`#tab_view_${tab.id}`).length) {
-            const mobile = isMobileDevice();
-            const iphone = isIPhone();
-            const ipad = isIPad();
-
-            const btnLabel = mobile ? '↗ Open in New Tab' : '↗ Open in Split Window';
-
-            let splitTip = '';
-            if (iphone) {
-                // iPhone Safari has NO split screen — be honest
-                splitTip = `
-                    <div style="font-size:0.78em;color:#555;text-align:center;max-width:320px;line-height:1.6;">
-                        iPhone Safari doesn't support split screen.<br>
-                        The site will open in a new tab — switch between<br>
-                        the tabs to use both at once.
-                    </div>`;
-            } else if (ipad) {
-                splitTip = `
-                    <div style="font-size:0.78em;color:#555;text-align:center;max-width:320px;line-height:1.6;">
-                        After opening, use <b style="color:#888;">iPad Split View</b>:<br>
-                        Long-press the tab switcher button → <b style="color:#888;">Open in Split View</b><br>
-                        to put the site next to this chat.
-                    </div>`;
-            } else if (mobile) {
-                splitTip = `
-                    <div style="font-size:0.78em;color:#555;text-align:center;max-width:320px;line-height:1.6;">
-                        After opening, use <b style="color:#888;">Android Split Screen</b>:<br>
-                        Hold the <b style="color:#888;">Recent Apps</b> button → select Split Screen,<br>
-                        then pick this Chat Reader app.
-                    </div>`;
-            } else {
-                splitTip = `
-                    <div style="font-size:0.78em;color:#555;text-align:center;max-width:320px;line-height:1.5;">
-                        Opens this site in a browser window on the right side of your screen.<br>
-                        Use <b style="color:#888;">Windows Snap (Win+←)</b> on this window to auto-fill the left half.
-                    </div>`;
-            }
+            const embedSrc = getEmbedSource(tab);
 
             const tabView = $(`
                 <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}" style="display: flex; flex-direction: column; height: 100%;">
-                    <!-- External Window Launch Panel -->
-                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #0d0f18 0%, #13151f 100%); gap: 18px; padding: 32px;">
-                        <div style="font-size: 3em; opacity: 0.6;">🌐</div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 1.2em; font-weight: bold; color: #e3e5eb; margin-bottom: 6px;">${escapeHtml(tab.title)}</div>
-                            <div style="font-size: 0.8em; color: #666; word-break: break-all; max-width: 360px;">${escapeHtml(tab.url)}</div>
+                    <!-- Top Web Navigation & Control Toolbar -->
+                    <div class="custom-web-toolbar">
+                        <span style="font-size: 1.1em; flex-shrink: 0;">${platform.icon}</span>
+                        <div class="custom-url-bar" title="${escapeHtml(tab.url)}">
+                            <span style="color: #e3e5eb; font-weight: 600; white-space: nowrap;">${escapeHtml(tab.title)}</span>
+                            <span style="color: #484d64; font-size: 0.85em;">|</span>
+                            <span style="color: #727a94; font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${escapeHtml(tab.url)}</span>
                         </div>
-                        <button onclick="openTabExternal('${tab.id}', '${escapeHtml(tab.url)}')" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: #fff; border: none; padding: 14px 32px; border-radius: 8px; font-size: 1em; font-weight: bold; cursor: pointer; box-shadow: 0 4px 16px rgba(88,166,255,0.35); transition: transform 0.15s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
-                            ${btnLabel}
-                        </button>
-                        ${splitTip}
+                        <button class="custom-web-btn" onclick="reloadTabFrame('${tab.id}')" title="Reload Webpage">🔄 Reload</button>
+                        <button class="custom-web-btn proxy-toggle-btn" onclick="toggleProxyTab('${tab.id}')" title="Toggle Unframe Proxy (Bypasses embed restrictions)">🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}</button>
+                        <button class="custom-web-btn" onclick="openTabExternal('${tab.id}', '${escapeHtml(tab.url)}')" title="Open in Split Screen / External Window">↗ Popout</button>
+                        <button class="custom-web-btn" onclick="editCustomTab('${tab.id}')" title="Edit Tab Title or URL">✏️ Edit</button>
+                        <button class="custom-web-btn" onclick="removeTab('${tab.id}', event)" title="Close Tab" style="color: #ff5555;">✕</button>
                     </div>
 
-                    <!-- Chat dock stays at the bottom as normal -->
+                    <!-- Live Interactive Embedded Webpage Frame -->
+                    <div class="custom-web-frame-wrapper" id="frame_wrapper_${tab.id}">
+                        <iframe 
+                            id="frame_${tab.id}" 
+                            class="custom-web-frame" 
+                            src="${escapeHtml(embedSrc)}" 
+                            allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write; camera; microphone;" 
+                            allowfullscreen 
+                            loading="lazy">
+                        </iframe>
+                    </div>
+
+                    <!-- Resizable Bottom Chat Dock -->
                     <div class="bottom-chat-dock" id="chatDock_${tab.id}" style="z-index: 10;">
                         <div class="dock-resize-handle" onmousedown="initDockResize(event, '${tab.id}')" ontouchstart="initDockResize(event, '${tab.id}')" title="Drag up or down to resize chat">
                             <div></div>
