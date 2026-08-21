@@ -305,6 +305,70 @@ const handleUnframeProxy = async (req, res) => {
 app.get('/api/streamelements-proxy', handleUnframeProxy);
 app.get('/api/unframe-proxy', handleUnframeProxy);
 
+// === Proxy Asset Endpoint for un-framing proxy ===
+app.get('/api/proxy-asset', async (req, res) => {
+    try {
+        let targetUrl = req.query.url;
+        if (!targetUrl) return res.status(400).send('Missing target URL parameter (?url=)');
+        if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
+
+        const response = await axios.get(targetUrl, {
+            responseType: 'arraybuffer',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Referer': targetUrl
+            },
+            timeout: 15000,
+            validateStatus: () => true
+        });
+
+        const contentType = response.headers['content-type'] || 'application/octet-stream';
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.removeHeader('X-Frame-Options');
+        res.removeHeader('Content-Security-Policy');
+        res.status(response.status).send(response.data);
+    } catch (e) {
+        res.status(500).send('Proxy Asset Error: ' + e.message);
+    }
+});
+
+// Dynamic chunk proxy for Single Page Apps (Vite/React/Webpack like StreamElements)
+app.get(['/api/*.js', '/api/*.css', '/*.js', '/*.css'], async (req, res, next) => {
+    const localFile = path.join(__dirname, 'public', req.path.replace(/^\/api\//, '/'));
+    if (fs.existsSync(localFile)) {
+        return next();
+    }
+
+    const referer = req.headers['referer'] || '';
+    if (referer.includes('unframe-proxy') || referer.includes('streamelements')) {
+        try {
+            const refererUrl = new URL(referer);
+            const originalTarget = refererUrl.searchParams.get('url') || 'https://streamelements.com';
+            const targetOrigin = new URL(originalTarget).origin;
+            const chunkUrl = targetOrigin + req.path.replace(/^\/api/, '');
+
+            const response = await axios.get(chunkUrl, {
+                responseType: 'arraybuffer',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'Referer': targetOrigin
+                },
+                timeout: 10000,
+                validateStatus: () => true
+            });
+
+            const contentType = response.headers['content-type'] || (req.path.endsWith('.js') ? 'application/javascript' : 'text/css');
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.removeHeader('X-Frame-Options');
+            res.removeHeader('Content-Security-Policy');
+            return res.status(response.status).send(response.data);
+        } catch (e) {}
+    }
+    next();
+});
+
 // === Iframe Compatibility Check ===
 // Returns { allowed: bool } so the client can auto-enable proxy mode if needed
 app.get('/api/check-iframe-compat', async (req, res) => {
