@@ -3993,6 +3993,9 @@ function formatTabUrl(inputUrl) {
 
 function getEmbedSource(tab) {
     if (!tab || !tab.url) return 'about:blank';
+    if (tab.useProxy) {
+        return '/api/unframe-proxy?url=' + encodeURIComponent(tab.url);
+    }
     return tab.url;
 }
 
@@ -4210,6 +4213,21 @@ function openTabExternal(tabId, url) {
     }
 }
 
+function toggleProxyTab(tabId) {
+    const tab = customTabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    tab.useProxy = !tab.useProxy;
+    saveCustomTabsToStorage();
+
+    const iframe = document.getElementById(`frame_${tabId}`);
+    if (iframe) {
+        iframe.src = getEmbedSource(tab);
+    }
+    $(`#tab_view_${tabId} .proxy-toggle-btn`).html(`🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}`);
+    showNotification(tab.useProxy ? 'Unframe Proxy Enabled 🛡️' : 'Direct Embed Mode 🌐', 'info');
+}
+
 function renderTabs() {
     const tabsListContainer = $('#customTabsList');
     const customViewsContainer = $('#customViewsContainer');
@@ -4244,6 +4262,7 @@ function renderTabs() {
                             <span style="color: #727a94; font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${escapeHtml(tab.url)}</span>
                         </div>
                         <button class="custom-web-btn" onclick="reloadTabFrame('${tab.id}')" title="Reload Webpage">🔄 Reload</button>
+                        <button class="custom-web-btn proxy-toggle-btn" onclick="toggleProxyTab('${tab.id}')" title="Toggle Unframe Proxy for sites that block embedding">🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}</button>
                         <button class="custom-web-btn" onclick="openTabExternal('${tab.id}', '${escapeHtml(tab.url)}')" title="Open in Popout / Split Window">↗ Popout</button>
                         <button class="custom-web-btn" onclick="editCustomTab('${tab.id}')" title="Edit Tab Title or URL">✏️ Edit</button>
                         <button class="custom-web-btn" onclick="removeTab('${tab.id}', event)" title="Close Tab" style="color: #ff5555;">✕</button>
