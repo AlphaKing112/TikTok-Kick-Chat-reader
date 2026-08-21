@@ -285,30 +285,80 @@ async function fetchKickBolbalEmotes() {
 
 const defaultKickBadges = {
     subscriber: 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%2353FC18\'><path d=\'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z\'/></svg>',
+    sub: 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%2353FC18\'><path d=\'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z\'/></svg>',
     moderator: 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%2353FC18\'><path d=\'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z\'/></svg>',
     broadcaster: 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23FF0000\'><path d=\'M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z\'/></svg>',
     verified: 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%2300C3FF\'><path d=\'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z\'/></svg>',
     founder: 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23FFD700\'><path d=\'M12 2L2 22h20L12 2zM12 6l5 14H7l5-14z\'/></svg>',
     og: 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23FF9500\'><path d=\'M12 2L2 22h20L12 2zM12 6l5 14H7l5-14z\'/></svg>',
-    vip: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_746_28171)"><path d="M30 0C31.1046 0 32 0.895431 32 2V30C32 31.1046 31.1046 32 30 32H2C0.895431 32 0 31.1046 0 30V2C0 0.895431 0.895431 4.10637e-08 2 0H30ZM15.9648 5C15.7748 5.00005 15.588 5.05204 15.4238 5.15039C15.2596 5.24878 15.124 5.39057 15.0303 5.56055L9.82812 15.0176L3.55078 11.8906C3.36913 11.7985 3.16534 11.7607 2.96387 11.7822C2.76241 11.8038 2.57048 11.8842 2.41113 12.0127C2.25235 12.1408 2.13185 12.3126 2.06348 12.5078C1.99511 12.7031 1.98143 12.9144 2.02441 13.1172L4.58301 25.127C4.63544 25.3782 4.77165 25.6034 4.96777 25.7627C5.16376 25.9217 5.40762 26.0056 5.65723 26H26.251C26.5009 26.0057 26.7453 25.9219 26.9414 25.7627C27.1376 25.6034 27.2737 25.3782 27.3262 25.127L29.9697 13.1172C30.0187 12.9103 30.0086 12.6932 29.9404 12.4922C29.8722 12.2912 29.7485 12.1151 29.585 11.9844C29.4215 11.8537 29.2249 11.7743 29.0186 11.7559C28.8122 11.7374 28.6049 11.7802 28.4219 11.8799L22.1025 15.0283L16.9004 5.56055C16.8066 5.39054 16.6701 5.24878 16.5059 5.15039C16.3416 5.05207 16.1549 5 15.9648 5Z" fill="url(#paint0_linear_746_28171)"></path></g><defs><linearGradient id="paint0_linear_746_28171" x1="18.8102" y1="-12.7222" x2="2.88536" y2="39.1063" gradientUnits="userSpaceOnUse"><stop stop-color="#FF6A4A"></stop><stop offset="1" stop-color="#C70C00"></stop></linearGradient><clipPath id="clip0_746_28171"><rect width="32" height="32" fill="white"></rect></clipPath></defs></svg>')
+    vip: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_746_28171)"><path d="M30 0C31.1046 0 32 0.895431 32 2V30C32 31.1046 31.1046 32 30 32H2C0.895431 32 0 31.1046 0 30V2C0 0.895431 0.895431 4.10637e-08 2 0H30ZM15.9648 5C15.7748 5.00005 15.588 5.05204 15.4238 5.15039C15.2596 5.24878 15.124 5.39057 15.0303 5.56055L9.82812 15.0176L3.55078 11.8906C3.36913 11.7985 3.16534 11.7607 2.96387 11.7822C2.76241 11.8038 2.57048 11.8842 2.41113 12.0127C2.25235 12.1408 2.13185 12.3126 2.06348 12.5078C1.99511 12.7031 1.98143 12.9144 2.02441 13.1172L4.58301 25.127C4.63544 25.3782 4.77165 25.6034 4.96777 25.7627C5.16376 25.9217 5.40762 26.0056 5.65723 26H26.251C26.5009 26.0057 26.7453 25.9219 26.9414 25.7627C27.1376 25.6034 27.2737 25.3782 27.3262 25.127L29.9697 13.1172C30.0187 12.9103 30.0086 12.6932 29.9404 12.4922C29.8722 12.2912 29.7485 12.1151 29.585 11.9844C29.4215 11.8537 29.2249 11.7743 29.0186 11.7559C28.8122 11.7374 28.6049 11.7802 28.4219 11.8799L22.1025 15.0283L16.9004 5.56055C16.8066 5.39054 16.6701 5.24878 16.5059 5.15039C16.3416 5.05207 16.1549 5 15.9648 5Z" fill="url(#paint0_linear_746_28171)"></path></g><defs><linearGradient id="paint0_linear_746_28171" x1="18.8102" y1="-12.7222" x2="2.88536" y2="39.1063" gradientUnits="userSpaceOnUse"><stop stop-color="#FF6A4A"></stop><stop offset="1" stop-color="#C70C00"></stop></linearGradient><clipPath id="clip0_746_28171"><rect width="32" height="32" fill="white"></rect></clipPath></defs></svg>'),
+    sub_gifter: 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23A855F7\'><path d=\'M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.05 0-1.96.54-2.5 1.35l-.5.65-.5-.65C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1h-2.22l.8-1.07C13.86 4.38 14.4 4 15 4zM9 4c.6 0 1.14.38 1.42.93L11.22 6H9c-.55 0-1-.45-1-1s.45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 11 8.76V14h2V8.76L15.38 12 17 10.83 14.92 8H20v6z\'/></svg>',
+    sub_gift_leader: 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23FFD700\'><path d=\'M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.05 0-1.96.54-2.5 1.35l-.5.65-.5-.65C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1h-2.22l.8-1.07C13.86 4.38 14.4 4 15 4zM9 4c.6 0 1.14.38 1.42.93L11.22 6H9c-.55 0-1-.45-1-1s.45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 11 8.76V14h2V8.76L15.38 12 17 10.83 14.92 8H20v6z\'/></svg>'
+};
+
+const defaultTwitchBadges = {
+    broadcaster: 'https://static-cdn.jtvnw.net/badges/v1/5527c58c-fb7d-422d-b71b-f309d08001a0/1',
+    moderator: 'https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/1',
+    vip: 'https://static-cdn.jtvnw.net/badges/v1/b817aba4-fad8-49e2-b88a-7cc744dfa6ec/1',
+    subscriber: 'https://static-cdn.jtvnw.net/badges/v1/5884558c-5cad-4ad3-92d6-a9ce79ab7904/1',
+    founder: 'https://static-cdn.jtvnw.net/badges/v1/09d93036-e7ce-431c-9a9e-7044297133f2/1',
+    partner: 'https://static-cdn.jtvnw.net/badges/v1/d12a2e27-16f6-41d0-ab77-b780518f00a3/1',
+    verified: 'https://static-cdn.jtvnw.net/badges/v1/d12a2e27-16f6-41d0-ab77-b780518f00a3/1',
+    turbo: 'https://static-cdn.jtvnw.net/badges/v1/bd444ec6-8f34-4bf9-9f4f-2af34d38767c/1',
+    prime: 'https://static-cdn.jtvnw.net/badges/v1/a1a0c10a-ab46-4540-9742-00a223878293/1',
+    premium: 'https://static-cdn.jtvnw.net/badges/v1/a1a0c10a-ab46-4540-9742-00a223878293/1',
+    artist: 'https://static-cdn.jtvnw.net/badges/v1/4500a716-34e0-49e8-8b9f-16c4c017d235/1',
+    'artist-badge': 'https://static-cdn.jtvnw.net/badges/v1/4500a716-34e0-49e8-8b9f-16c4c017d235/1',
+    'sub-gifter': 'https://static-cdn.jtvnw.net/badges/v1/f1d830a6-e01e-4ce1-97b7-578d37a28e75/1',
+    'sub-gift-leader': 'https://static-cdn.jtvnw.net/badges/v1/f1d830a6-e01e-4ce1-97b7-578d37a28e75/1',
+    bits: 'https://static-cdn.jtvnw.net/badges/v1/73b5c3fb-245e-4f5c-9d0b-80fb7a7ff9bc/1',
+    'bits-leader': 'https://static-cdn.jtvnw.net/badges/v1/73b5c3fb-245e-4f5c-9d0b-80fb7a7ff9bc/1',
+    staff: 'https://static-cdn.jtvnw.net/badges/v1/d97c37bd-a6f5-4c38-8f57-4e4bef889344/1',
+    admin: 'https://static-cdn.jtvnw.net/badges/v1/9ef7e029-4ce3-4d69-94b7-d15e10034a78/1',
+    global_mod: 'https://static-cdn.jtvnw.net/badges/v1/9384c43f-4ce7-4e94-b2a1-358079010049/1',
+    no_video: 'https://static-cdn.jtvnw.net/badges/v1/1b58535b-16bb-49e3-8556-9a259c40391d/1',
+    no_audio: 'https://static-cdn.jtvnw.net/badges/v1/aef2cd08-f292-42c6-832a-f14f2974c335/1'
 };
 
 window.currentKickSubBadges = [];
 
 function fetchKickSubBadges(channelSlug) {
     if (!channelSlug) return;
-    const url = `https://kick.com/api/v1/channels/${channelSlug}`;
-    fetch(url)
-        .then(res => res.json())
-        .then(data => {
-            const rawBadges = data.subscriber_badges || data.subscriberBadges || data.badges || [];
-            window.currentKickSubBadges = rawBadges.map(b => ({
-                months: b.months || b.count || 1,
-                url: b.badge_image?.src || b.badge_image?.srcset || b.url || b.badge_url || b.src || b.image_url
-            })).filter(b => b.url).sort((a, b) => a.months - b.months);
-            console.log('[Kick Badges] Loaded custom sub badges for', channelSlug, window.currentKickSubBadges);
+    const lower = channelSlug.toLowerCase();
+    
+    // Check localStorage cache first for immediate badge availability
+    try {
+        const localCached = localStorage.getItem('kick_sub_badges_' + lower);
+        if (localCached) {
+            const parsed = JSON.parse(localCached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                window.currentKickSubBadges = parsed;
+            }
+        }
+    } catch(e) {}
+
+    // Fetch from our server proxy
+    fetch(`/api/kick/badges/${encodeURIComponent(channelSlug)}`)
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
         })
-        .catch(err => console.error('[Kick Badges] Failed to fetch sub badges:', err));
+        .then(data => {
+            const rawBadges = data.badges || data.subscriber_badges || data.subscriberBadges || [];
+            if (Array.isArray(rawBadges) && rawBadges.length > 0) {
+                window.currentKickSubBadges = rawBadges.map(b => ({
+                    months: b.months || b.count || 1,
+                    url: b.url || b.badge_image?.src || b.badge_image?.srcset || b.badge_url || b.src || b.image_url
+                })).filter(b => b.url).sort((a, b) => a.months - b.months);
+                try {
+                    localStorage.setItem('kick_sub_badges_' + lower, JSON.stringify(window.currentKickSubBadges));
+                } catch(e) {}
+                console.log('[Kick Badges] Loaded custom sub badges for', channelSlug, window.currentKickSubBadges);
+            }
+        })
+        .catch(err => {
+            console.warn('[Kick Badges] Server proxy fetch notice, using fallback/cached:', err.message);
+        });
 }
 
 function renderKickBadges(badges) {
@@ -425,6 +475,9 @@ $(document).ready(() => {
             kickChatReady = false;
             $('#stateText').text('Connecting to Kick...');
             
+            // Prefetch Kick sub badges immediately from cache/backend
+            fetchKickSubBadges(kickInput);
+
             // Try to fetch chatroom ID from frontend to bypass backend Cloudflare blocks
             fetch(`https://kick.com/api/v1/channels/${kickInput}`)
                 .then(r => r.json())
@@ -467,6 +520,7 @@ $(document).ready(() => {
         }
         let channel = $('#twitchInput').val().trim();
         if (channel) {
+            try { localStorage.setItem('saved_twitch_channel', channel); } catch(e) {}
             window.connection.socket.emit('setTwitchChannel', channel);
         }
     });
@@ -481,6 +535,7 @@ $(document).ready(() => {
     if (window.settings.twitch) {
         let twitchChannel = window.settings.twitch.trim();
         if (twitchChannel) {
+            try { localStorage.setItem('saved_twitch_channel', twitchChannel); } catch(e) {}
             window.connection.socket.emit('setTwitchChannel', twitchChannel);
             $('#stateText').text('Connecting to Twitch...');
         }
@@ -903,26 +958,63 @@ $(document).ready(() => {
         
         window.fetchTwitchBadges = function(roomId) {
             if (!roomId || roomId === 'null' || roomId === 'undefined') return;
-            if (window.twitchBadgesCache) return; // already loaded or loading
-            window.twitchBadgesCache = { loading: true }; // prevent multiple calls
+            
+            // Check localStorage cache first so badges are immediately available with zero delay
+            if (!window.twitchBadgesCache || window.twitchBadgesCache.loading) {
+                try {
+                    const localCached = localStorage.getItem('twitch_badges_' + roomId);
+                    if (localCached) {
+                        const parsed = JSON.parse(localCached);
+                        if (parsed && (parsed.channelBadges || parsed.globalBadges)) {
+                            window.twitchBadgesCache = parsed;
+                        }
+                    }
+                } catch(e) {}
+            }
+            
+            if (window.twitchBadgesCache && !window.twitchBadgesCache.loading && window.twitchBadgesCache.roomId === roomId) {
+                return; // already loaded for this room
+            }
+            
+            if (!window.twitchBadgesCache) {
+                window.twitchBadgesCache = { loading: true, roomId: roomId };
+            }
+            
             fetch(`/api/twitch/badges/${roomId}`)
                 .then(res => {
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return res.json();
                 })
                 .then(badges => {
+                    badges.roomId = roomId;
                     window.twitchBadgesCache = badges;
+                    try {
+                        localStorage.setItem('twitch_badges_' + roomId, JSON.stringify(badges));
+                        if (badges.globalBadges && badges.globalBadges.length > 0) {
+                            localStorage.setItem('twitch_global_badges', JSON.stringify(badges.globalBadges));
+                        }
+                    } catch(e) {}
                     console.log('[Twitch] Badges loaded:', badges);
                 })
                 .catch(err => {
-                    window.twitchBadgesCache = null;
-                    console.warn('[Twitch] Failed to load badges:', err.message);
+                    console.warn('[Twitch] Notice on badges fetch, using cached/standard badges:', err.message);
+                    if (!window.twitchBadgesCache || window.twitchBadgesCache.loading) {
+                        try {
+                            const cachedGlobal = localStorage.getItem('twitch_global_badges');
+                            window.twitchBadgesCache = {
+                                roomId: roomId,
+                                channelBadges: [],
+                                globalBadges: cachedGlobal ? JSON.parse(cachedGlobal) : []
+                            };
+                        } catch(e) {
+                            window.twitchBadgesCache = { roomId: roomId, channelBadges: [], globalBadges: [] };
+                        }
+                    }
                 });
         };
 
         window.connection.socket.on('twitchDisconnected', function(reason) {
             console.log('[Twitch] Disconnected:', reason);
-            window.twitchBadgesCache = null;
             setLiveDot('twitchDot', false);
             $('#twitchConnectButton').val('connect');
             $('#chatInputContainer').hide();
@@ -1072,40 +1164,61 @@ $(document).ready(() => {
         }
 
         function getTwitchBadgeUrl(setId, versionId) {
-            if (!window.twitchBadgesCache) return null;
-            
             function findVersionInSet(set) {
-                if (!set) return null;
-                let version = set.versions.find(v => v.id === versionId);
-                if (version) return version.image_url_1x;
+                if (!set || !set.versions) return null;
+                let version = set.versions.find(v => String(v.id) === String(versionId));
+                if (version) return version.image_url_1x || version.image_url_2x || version.image_url_4x || version.image_url;
                 
                 // Fallback for numeric badges (like subscriber months) where exact version doesn't exist
                 if (!isNaN(versionId)) {
                     const reqNum = parseInt(versionId);
                     const numericVersions = set.versions
-                        .map(v => ({ idStr: v.id, num: parseInt(v.id) }))
+                        .map(v => ({ idStr: String(v.id), num: parseInt(v.id), url: v.image_url_1x || v.image_url_2x || v.image_url_4x || v.image_url }))
                         .filter(v => !isNaN(v.num))
                         .sort((a, b) => b.num - a.num); // sort descending
                     
                     const closest = numericVersions.find(v => v.num <= reqNum);
-                    if (closest) {
-                        const fallbackVersion = set.versions.find(v => v.id === closest.idStr);
-                        if (fallbackVersion) return fallbackVersion.image_url_1x;
+                    if (closest && closest.url) {
+                        return closest.url;
                     }
+                }
+                if (set.versions.length > 0) {
+                    return set.versions[0].image_url_1x || set.versions[0].image_url_2x || set.versions[0].image_url_4x || set.versions[0].image_url;
                 }
                 return null;
             }
             
-            if (window.twitchBadgesCache.channelBadges) {
-                const set = window.twitchBadgesCache.channelBadges.find(s => s.set_id === setId);
-                const url = findVersionInSet(set);
-                if (url) return url;
+            if (window.twitchBadgesCache) {
+                if (window.twitchBadgesCache.channelBadges) {
+                    const set = window.twitchBadgesCache.channelBadges.find(s => (s.set_id || s.id) === setId);
+                    const url = findVersionInSet(set);
+                    if (url) return url;
+                }
+                
+                if (window.twitchBadgesCache.globalBadges) {
+                    const set = window.twitchBadgesCache.globalBadges.find(s => (s.set_id || s.id) === setId);
+                    const url = findVersionInSet(set);
+                    if (url) return url;
+                }
             }
-            
-            if (window.twitchBadgesCache.globalBadges) {
-                const set = window.twitchBadgesCache.globalBadges.find(s => s.set_id === setId);
-                const url = findVersionInSet(set);
-                if (url) return url;
+
+            // Check localStorage global cache if present
+            try {
+                const cachedGlobal = localStorage.getItem('twitch_global_badges');
+                if (cachedGlobal) {
+                    const globalBadges = JSON.parse(cachedGlobal);
+                    if (Array.isArray(globalBadges)) {
+                        const set = globalBadges.find(s => (s.set_id || s.id) === setId);
+                        const url = findVersionInSet(set);
+                        if (url) return url;
+                    }
+                }
+            } catch(e) {}
+
+            // Static fallback CDN URL
+            const lower = (setId || '').toLowerCase();
+            if (defaultTwitchBadges[lower]) {
+                return defaultTwitchBadges[lower];
             }
             return null;
         }
@@ -1137,14 +1250,11 @@ $(document).ready(() => {
             if (data.tags && data.tags.badges) {
                 for (const [badgeId, version] of Object.entries(data.tags.badges)) {
                     let badgeUrl = getTwitchBadgeUrl(badgeId, version);
+                    if (!badgeUrl) {
+                        badgeUrl = defaultTwitchBadges[badgeId.toLowerCase()] || defaultTwitchBadges.subscriber;
+                    }
                     if (badgeUrl) {
-                        badgeHtml += `<img src="${badgeUrl}" class="twitch-badge-icon" style="height:1.2em; vertical-align:middle; margin-right:4px;" title="${badgeId}">`;
-                    } else {
-                        // Fallbacks if not cached
-                        if (badgeId === 'broadcaster') badgeHtml += '🎥 ';
-                        else if (badgeId === 'moderator') badgeHtml += '⚔️ ';
-                        else if (badgeId === 'subscriber') badgeHtml += '⭐ ';
-                        else if (badgeId === 'vip') badgeHtml += '💎 ';
+                        badgeHtml += `<img src="${badgeUrl}" class="twitch-badge-icon" style="height:1.2em; vertical-align:middle; margin-right:4px;" alt="${badgeId}" title="${badgeId}">`;
                     }
                 }
             }
@@ -1217,6 +1327,7 @@ function connect() {
     
     let uniqueId = window.settings.username || $('#uniqueIdInput').val();
     if (uniqueId && isValidTikTokUsername(uniqueId)) {
+        try { localStorage.setItem('saved_tiktok_channel', uniqueId); } catch(e) {}
         $('#stateText').text('Connecting...');
         
         // Add timeout for connection attempts
@@ -1749,8 +1860,10 @@ $(document).ready(function() {
         }
         // Track the current channel for filtering
         currentKickChannel = kickInput;
+        try { localStorage.setItem('saved_kick_channel', kickInput); } catch(e) {}
         kickChatReady = false;
         $('#stateText').text('Connecting to Kick...');
+        fetchKickSubBadges(kickInput);
         
         // Try to fetch chatroom ID from frontend to bypass backend Cloudflare blocks
         fetch(`https://kick.com/api/v1/channels/${kickInput}`)

@@ -247,10 +247,38 @@
                             console.error('Failed to load overlay settings', e);
                         }
                     }
+
+                    // Restore saved channel names if input fields are empty
+                    try {
+                        const savedTikTok = localStorage.getItem('saved_tiktok_channel');
+                        if (savedTikTok && !$('#uniqueIdInput').val()) {
+                            $('#uniqueIdInput').val(savedTikTok);
+                        }
+                        const savedKick = localStorage.getItem('saved_kick_channel');
+                        if (savedKick && !$('#kickLinkInput').val()) {
+                            $('#kickLinkInput').val(savedKick);
+                        }
+                        const savedTwitch = localStorage.getItem('saved_twitch_channel');
+                        if (savedTwitch && !$('#twitchInput').val()) {
+                            $('#twitchInput').val(savedTwitch);
+                        }
+                    } catch (e) {}
                 }
                 
                 // Load settings when DOM is ready
-                document.addEventListener('DOMContentLoaded', loadOverlaySettings);
+                document.addEventListener('DOMContentLoaded', () => {
+                    loadOverlaySettings();
+                    
+                    $('#uniqueIdInput').on('input change', function() {
+                        try { localStorage.setItem('saved_tiktok_channel', this.value.trim()); } catch(e) {}
+                    });
+                    $('#kickLinkInput').on('input change', function() {
+                        try { localStorage.setItem('saved_kick_channel', this.value.trim()); } catch(e) {}
+                    });
+                    $('#twitchInput').on('input change', function() {
+                        try { localStorage.setItem('saved_twitch_channel', this.value.trim()); } catch(e) {}
+                    });
+                });
             </script>
         </div>
     </div>
@@ -461,9 +489,14 @@
 
     <script>
     function buildOverlayUrl() {
-    let tiktokUsername = $('#uniqueIdInput').val().trim();
-    let kickChannel = $('#kickLinkInput').val().trim();
-    let twitchChannel = $('#twitchInput').val().trim();
+    let tiktokUsername = $('#uniqueIdInput').val().trim() || localStorage.getItem('saved_tiktok_channel') || '';
+    let kickChannel = $('#kickLinkInput').val().trim() || localStorage.getItem('saved_kick_channel') || '';
+    let twitchChannel = $('#twitchInput').val().trim() || localStorage.getItem('saved_twitch_channel') || '';
+
+    // Persist current inputs to localStorage
+    if (tiktokUsername) { try { localStorage.setItem('saved_tiktok_channel', tiktokUsername); } catch(e) {} }
+    if (kickChannel) { try { localStorage.setItem('saved_kick_channel', kickChannel); } catch(e) {} }
+    if (twitchChannel) { try { localStorage.setItem('saved_twitch_channel', twitchChannel); } catch(e) {} }
 
     let url = window.location.origin + '/obs.html?';
     let params = [];

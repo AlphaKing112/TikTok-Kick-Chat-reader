@@ -60,7 +60,21 @@
             // Always hide profile pics in OBS and add text shadow for readability
             styleCss += `
                 .miniprofilepicture { display: none !important; }
-                .twitch-message .platform-icon { width: 16px !important; height: 16px !important; vertical-align: middle; margin-right: 4px; }
+                .platform-icon, .twitch-message .platform-icon, .kick-message .platform-icon, .tiktok-message .platform-icon {
+                    width: 16px !important;
+                    height: 16px !important;
+                    vertical-align: middle !important;
+                    margin-right: 4px !important;
+                    display: inline-block !important;
+                    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.8)) !important;
+                }
+                .twitch-badge-icon, .kick-badge {
+                    height: 1.2em !important;
+                    width: auto !important;
+                    vertical-align: middle !important;
+                    margin-right: 3px !important;
+                    display: inline-block !important;
+                }
                 .tiktok-message, .kick-message, .twitch-message, .chatcontainer div, .eventcontainer div, .kick-gifted-sub, .kick-gifted-sub-item {
                     text-shadow: 2px 2px 4px black, -2px -2px 4px black, 2px -2px 4px black, -2px 2px 4px black, 0px 0px 8px black !important;
                 }

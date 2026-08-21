@@ -1928,6 +1928,20 @@ app.get('/api/kick/userinfo', async (req, res) => {
 });
 
 
+// KICK BADGES ENDPOINT
+app.get('/api/kick/badges/:channel', async (req, res) => {
+    const { channel } = req.params;
+    if (!channel) return res.status(400).json({ error: 'Missing channel parameter', badges: [] });
+    
+    try {
+        const badges = await fetchKickChannelSubBadges(channel);
+        return res.json({ channel, badges: badges || [] });
+    } catch (e) {
+        console.error(`[Kick Badges] Error fetching badges for ${channel}:`, e.message);
+        return res.json({ channel, badges: [] });
+    }
+});
+
 // TWITCH BADGES ENDPOINT
 app.get('/api/twitch/badges/:broadcasterId', async (req, res) => {
     const { broadcasterId } = req.params;
@@ -1937,25 +1951,72 @@ app.get('/api/twitch/badges/:broadcasterId', async (req, res) => {
     }
 
     const headers = await getTwitchAuthHeaders();
-    if (!headers) {
-        return res.status(400).json({ error: 'Twitch API credentials not configured', channelBadges: [], globalBadges: [] });
-    }
-
     let channelBadges = [];
     let globalBadges = [];
 
-    try {
-        const channelBadgesRes = await axios.get(`https://api.twitch.tv/helix/chat/badges?broadcaster_id=${broadcasterId}`, { headers });
-        channelBadges = channelBadgesRes.data?.data || [];
-    } catch (e) {
-        console.warn('[Twitch] Channel badges fetch notice:', e.response?.data?.message || e.message);
+    if (headers) {
+        try {
+            const channelBadgesRes = await axios.get(`https://api.twitch.tv/helix/chat/badges?broadcaster_id=${broadcasterId}`, { headers, timeout: 5000 });
+            channelBadges = channelBadgesRes.data?.data || [];
+        } catch (e) {
+            console.warn('[Twitch] Channel badges fetch notice:', e.response?.data?.message || e.message);
+        }
+
+        try {
+            const globalBadgesRes = await axios.get('https://api.twitch.tv/helix/chat/badges/global', { headers, timeout: 5000 });
+            globalBadges = globalBadgesRes.data?.data || [];
+        } catch (e) {
+            console.warn('[Twitch] Global badges fetch notice:', e.response?.data?.message || e.message);
+        }
     }
 
-    try {
-        const globalBadgesRes = await axios.get('https://api.twitch.tv/helix/chat/badges/global', { headers });
-        globalBadges = globalBadgesRes.data?.data || [];
-    } catch (e) {
-        console.warn('[Twitch] Global badges fetch notice:', e.response?.data?.message || e.message);
+    // Fallback: If channel badges or global badges are empty, try IVR public Twitch API
+    if (channelBadges.length === 0 || globalBadges.length === 0) {
+        try {
+            if (channelBadges.length === 0) {
+                const ivrChanRes = await axios.get(`https://api.ivr.fi/v2/twitch/badges/channel?id=${broadcasterId}`, {
+                    headers: { 'User-Agent': 'CombinedChat/1.0' },
+                    timeout: 4000
+                });
+                if (Array.isArray(ivrChanRes.data)) {
+                    channelBadges = ivrChanRes.data.map(set => ({
+                        set_id: set.set_id || set.id,
+                        versions: (set.versions || []).map(v => ({
+                            id: String(v.id),
+                            image_url_1x: v.image_url_1x || v.image_url_2x || v.image_url_4x || v.url,
+                            image_url_2x: v.image_url_2x || v.image_url_1x || v.url,
+                            image_url_4x: v.image_url_4x || v.image_url_2x || v.url,
+                            title: v.title || v.description || set.set_id
+                        }))
+                    }));
+                }
+            }
+        } catch(e) {
+            // IVR channel fallback failed silently
+        }
+
+        try {
+            if (globalBadges.length === 0) {
+                const ivrGlobRes = await axios.get('https://api.ivr.fi/v2/twitch/badges/global', {
+                    headers: { 'User-Agent': 'CombinedChat/1.0' },
+                    timeout: 4000
+                });
+                if (Array.isArray(ivrGlobRes.data)) {
+                    globalBadges = ivrGlobRes.data.map(set => ({
+                        set_id: set.set_id || set.id,
+                        versions: (set.versions || []).map(v => ({
+                            id: String(v.id),
+                            image_url_1x: v.image_url_1x || v.image_url_2x || v.image_url_4x || v.url,
+                            image_url_2x: v.image_url_2x || v.image_url_1x || v.url,
+                            image_url_4x: v.image_url_4x || v.image_url_2x || v.url,
+                            title: v.title || v.description || set.set_id
+                        }))
+                    }));
+                }
+            }
+        } catch(e) {
+            // IVR global fallback failed silently
+        }
     }
 
     res.json({ channelBadges, globalBadges });

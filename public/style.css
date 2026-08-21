@@ -377,11 +377,31 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     line-height: 1.4;
 }
 
-.twitch-message .platform-icon {
+.twitch-message .platform-icon,
+.kick-message .platform-icon,
+.tiktok-message .platform-icon,
+.platform-icon {
     width: 16px !important;
     height: 16px !important;
+    vertical-align: middle !important;
+    margin-right: 4px !important;
+    display: inline-block !important;
+    flex-shrink: 0;
+}
+
+.twitch-badge-icon {
+    display: inline-block;
+    height: 1.2em;
     vertical-align: middle;
-    margin-right: 4px;
+    margin-right: 3px;
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: transform 0.1s ease;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.twitch-badge-icon:hover {
+    transform: scale(1.1);
 }
 
 /* Kick Gifted Sub Styles */
