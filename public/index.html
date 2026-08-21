@@ -68,12 +68,11 @@
 
         <div id="overlayPanelBody" style="display: none; margin-top: 14px; border-top: 1px solid #444; padding-top: 14px;">
             <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
-                <button onclick="previewOverlay()" style="background: #2a2d3e; color: #aaa; border: 1px solid #444; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">👁️ Preview</button>
-                <button onclick="refreshOverlay()" style="background: #d92d2d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;" title="Force refresh the OBS overlay if it freezes">🔄 Refresh</button>
-                <button onclick="generateOverlay()" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95em; box-shadow: 0 2px 8px rgba(145,70,255,0.3);">🔗 Generate Overlay URL</button>
-                <button onclick="copyOverlayUrl()" style="background: #1db954; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">📋 Copy URL</button>
+                <button onclick="previewOverlay()" style="background: #2a2d3e; color: #e3e5eb; border: 1px solid #444; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em; font-weight: 500;" title="Open live overlay preview in a new tab">👁️ Preview</button>
+                <button onclick="copyOverlayUrl()" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95em; box-shadow: 0 2px 8px rgba(145,70,255,0.3);" title="Generate and copy OBS Browser Source URL to clipboard">📋 Copy Overlay URL</button>
+                <button onclick="refreshOverlay()" style="background: #d92d2d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;" title="Force refresh the OBS overlay if it freezes">🔄 Refresh Overlay</button>
             </div>
-            <div id="overlayUrlBox" style="display: none; margin-bottom: 14px; background: #0d0f18; border-radius: 6px; padding: 10px 14px; font-size: 0.82em; color: #58a6ff; word-break: break-all; border: 1px solid #333;"></div>
+            <div id="overlayUrlBox" onclick="copyOverlayUrl()" title="Click to copy" style="display: none; margin-bottom: 14px; background: #0d0f18; border-radius: 6px; padding: 10px 14px; font-size: 0.82em; color: #58a6ff; word-break: break-all; border: 1px solid #333; cursor: pointer;"></div>
 
             <!-- Google Fonts preload for previews -->
             <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -529,19 +528,6 @@ function updateBgColorFromToggle() {
     colorInput.style.opacity = isTransparent ? '0.4' : '1';
 }
 
-function generateOverlay() {
-    const { url, hasChannel } = buildOverlayUrl();
-    if (!hasChannel) {
-        showNotification('Enter at least one channel name first!', 'error');
-        return;
-    }
-    // Show URL box
-    document.getElementById('overlayPanelBody').style.display = 'block';
-    const box = $('#overlayUrlBox');
-    box.text(url).show();
-    window.open(url, '_blank');
-}
-
 function previewOverlay() {
     const { url, hasChannel } = buildOverlayUrl();
     if (!hasChannel) {
@@ -568,6 +554,10 @@ function copyOverlayUrl() {
     }).catch(() => {
         showNotification('Could not auto-copy. Please copy manually from below.', 'warning');
     });
+}
+
+function generateOverlay() {
+    copyOverlayUrl();
 }
 
 
