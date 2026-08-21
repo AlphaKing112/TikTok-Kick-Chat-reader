@@ -224,8 +224,9 @@
                                 document.getElementById('overlayTransparent').checked = settings.transparent;
                                 updateBgColorFromToggle();
                             }
-                            if (settings.font) {
-                                document.getElementById('overlayFont').value = settings.font;
+                            const fontVal = settings.fontFamily || settings.font;
+                            if (fontVal) {
+                                document.getElementById('overlayFont').value = fontVal;
                             }
                             if (settings.fontSize) {
                                 document.getElementById('overlayFontSize').value = settings.fontSize;
@@ -237,10 +238,22 @@
                                 document.getElementById('overlayDisappear').value = settings.disappear;
                             }
                             if (typeof settings.hideBots !== 'undefined') {
-                                document.getElementById('overlayHideBots').checked = settings.hideBots;
+                                document.getElementById('overlayHideBots').checked = (settings.hideBots === '1' || settings.hideBots === true);
                             }
                             if (typeof settings.showChats !== 'undefined') {
-                                document.getElementById('overlayShowChats').checked = settings.showChats;
+                                document.getElementById('overlayShowChats').checked = (settings.showChats === '1' || settings.showChats === true);
+                            }
+                            if (typeof settings.showLikes !== 'undefined') {
+                                const el = document.getElementById('filterTiktokLikes');
+                                if (el) el.checked = (settings.showLikes === '1' || settings.showLikes === true);
+                            }
+                            if (typeof settings.showFollows !== 'undefined') {
+                                const el = document.getElementById('filterTiktokFollows');
+                                if (el) el.checked = (settings.showFollows === '1' || settings.showFollows === true);
+                            }
+                            if (typeof settings.showJoins !== 'undefined') {
+                                const el = document.getElementById('filterTiktokJoins');
+                                if (el) el.checked = (settings.showJoins === '1' || settings.showJoins === true);
                             }
                         } catch (e) {
                             console.error('Failed to load overlay settings', e);
