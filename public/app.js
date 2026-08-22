@@ -14,6 +14,13 @@ window.connection = connection;
 function isBotMessage(username) {
     if (!username) return false;
     
+    // Bot filtering ONLY applies to the OBS overlay URL (obs.html)
+    // Main chat dashboard (index.html) will ALWAYS show all bot messages and command responses
+    const isOverlay = window.location.pathname.includes('obs.html') || ($('.eventcontainer').length > 0 && $('.chatcontainer').length === 0);
+    if (!isOverlay) {
+        return false;
+    }
+    
     let hideBots = true;
     if (window.settings) {
         if (window.settings.hideBots === '0' || window.settings.hideBots === 'false' || window.settings.hideBots === false) {
@@ -21,10 +28,6 @@ function isBotMessage(username) {
         } else if (window.settings.hideBots === '1' || window.settings.hideBots === 'true' || window.settings.hideBots === true) {
             hideBots = true;
         }
-    } else if ($('#overlayHideBots').length) {
-        hideBots = $('#overlayHideBots').is(':checked');
-    } else if ($('#filterHideBots').length) {
-        hideBots = $('#filterHideBots').is(':checked');
     }
     if (!hideBots) return false;
     
@@ -34,7 +37,8 @@ function isBotMessage(username) {
         'fossabot', 'commanderroot', 'kofibot', 'botrix', 'botrixofficial',
         'soundalerts', 'pretzelrocks', 'sery_bot', 'serybot', 'creatisbot',
         'kickbot', 'stay_hydrated_bot', 'streamcord', 'buttsbot', 'songlistbot',
-        'restreambot', 'cozybot', 'botrix_kick', 'botrix_twitch'
+        'restreambot', 'cozybot', 'botrix_kick', 'botrix_twitch', 'creatis_bot',
+        'supibot', 'vivbot', 'deepbot', 'ankhbot', 'cozy_bot'
     ];
     return bots.includes(u) || u.startsWith('botrix') || u.includes('botrix') || u.includes('streamelement') || u.includes('nightbot');
 }
@@ -616,6 +620,19 @@ $(document).ready(() => {
                 
                 if (window.settings.showChats === '0') {
                     dynamicCss += `.chat-msg, .kick-message, .twitch-message { display: none !important; }`;
+                }
+                
+                const hideBots = !(window.settings.hideBots === '0' || window.settings.hideBots === 'false' || window.settings.hideBots === false);
+                if (hideBots) {
+                    dynamicCss += `
+                        [class*="kick-user-botrix"], [class*="twitch-username-botrix"],
+                        [class*="twitch-username-nightbot"], [class*="twitch-username-streamelements"],
+                        [class*="twitch-username-streamlabs"], [class*="twitch-username-moobot"],
+                        [class*="twitch-username-wizebot"], [class*="twitch-username-fossabot"],
+                        [class*="twitch-username-sery_bot"] {
+                            display: none !important;
+                        }
+                    `;
                 }
                 
                 // Apply dynamic CSS
