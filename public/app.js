@@ -4564,15 +4564,15 @@ function renderTabs() {
                             <button class="custom-url-go-btn" onclick="navigateTabUrl('${tab.id}')" title="Navigate to URL">↵ Go</button>
                         </div>
                         <div class="custom-web-actions-row">
-                            <button class="custom-web-btn" onclick="reloadTabFrame('${tab.id}')" title="Reload Webpage">🔄 Reload</button>
+                            <button class="custom-web-btn" onclick="reloadTabFrame('${tab.id}')" title="Reload Webpage"><span>🔄</span><span class="btn-text-full"> Reload</span></button>
                             ${tab.url.includes('streamelements') ? `
-                            <button class="custom-web-btn" onclick="promptStreamElementsToken('${tab.id}')" style="background: linear-gradient(135deg, rgba(88,166,255,0.25), rgba(145,70,255,0.3)); border-color: rgba(88,166,255,0.6); font-weight: bold; color: #79c0ff;" title="Connect StreamElements JWT Token to load live private dashboard & overlays">🔑 Connect SE Token</button>
+                            <button class="custom-web-btn" onclick="promptStreamElementsToken('${tab.id}')" style="background: linear-gradient(135deg, rgba(88,166,255,0.25), rgba(145,70,255,0.3)); border-color: rgba(88,166,255,0.6); font-weight: bold; color: #79c0ff;" title="Connect StreamElements JWT Token to load live private dashboard & overlays"><span>🔑</span><span class="btn-text-full"> Connect SE Token</span><span class="btn-text-short"> Token</span></button>
                             ` : ''}
-                            <button class="custom-web-btn" onclick="openTabLogin('${tab.id}')" title="Login Companion: Open direct login window for sites requiring browser sign-in / OAuth / Passkeys">🔑 Login</button>
-                            <button class="custom-web-btn proxy-toggle-btn" onclick="toggleProxyTab('${tab.id}')" title="Toggle Unframe Proxy for sites that block embedding">🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}</button>
-                            <button class="custom-web-btn" onclick="openTabExternal('${tab.id}')" title="Open in Popout / Companion Window">↗ Popout</button>
-                            <button class="custom-web-btn" onclick="editCustomTab('${tab.id}')" title="Edit Tab Title or URL">✏️ Edit</button>
-                            <button class="custom-web-btn" onclick="removeTab('${tab.id}', event)" title="Close Tab" style="color: #ff5555;">✕</button>
+                            <button class="custom-web-btn" onclick="openTabLogin('${tab.id}')" title="Login Companion: Open direct login window for sites requiring browser sign-in / OAuth / Passkeys"><span>🔑</span><span class="btn-text-full"> Login</span><span class="btn-text-short"> Login</span></button>
+                            <button class="custom-web-btn proxy-toggle-btn" onclick="toggleProxyTab('${tab.id}')" title="Toggle Unframe Proxy for sites that block embedding"><span>🛡️</span><span class="btn-text-full"> ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}</span><span class="btn-text-short"> ${tab.useProxy ? 'Proxy' : 'Direct'}</span></button>
+                            <button class="custom-web-btn" onclick="openTabExternal('${tab.id}')" title="Open in Popout / Companion Window"><span>↗</span><span class="btn-text-full"> Popout</span><span class="btn-text-short"> Popout</span></button>
+                            <button class="custom-web-btn" onclick="editCustomTab('${tab.id}')" title="Edit Tab Title or URL"><span>✏️</span><span class="btn-text-full"> Edit</span><span class="btn-text-short"> Edit</span></button>
+                            <button class="custom-web-btn" onclick="removeTab('${tab.id}', event)" title="Close Tab" style="color: #ff5555;"><span>✕</span></button>
                         </div>
                     </div>
 

@@ -1581,8 +1581,19 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     -webkit-overflow-scrolling: touch;
 }
 
+.btn-text-short {
+    display: none;
+}
+
 /* Responsive Mobile Web Split-View Toolbar */
 @media (max-width: 768px) {
+    .btn-text-full {
+        display: none;
+    }
+    .btn-text-short {
+        display: inline;
+    }
+
     .custom-web-toolbar {
         flex-direction: column;
         align-items: stretch;
@@ -1599,6 +1610,7 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
         flex: 1 1 100% !important;
         min-width: 0 !important;
         padding: 4px 8px 4px 10px;
+        box-sizing: border-box;
     }
 
     .custom-url-title,
@@ -1613,21 +1625,15 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     .custom-web-actions-row {
         width: 100%;
         display: flex;
+        flex-wrap: wrap; /* ALL BUTTONS WRAP TO NEXT LINE SO NONE ARE CUT OFF */
         align-items: center;
-        gap: 6px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        padding-bottom: 2px;
-    }
-
-    .custom-web-actions-row::-webkit-scrollbar {
-        display: none;
+        gap: 5px;
     }
 
     .custom-web-btn {
-        padding: 5px 10px;
+        padding: 5px 8px;
         font-size: 0.78em;
+        flex: 0 0 auto;
     }
 }
 
