@@ -3934,6 +3934,24 @@ function closeEditPageModal() {
     $('#editPageModalOverlay').hide();
 }
 
+function isNativeEmbedUrl(url) {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.includes('youtube.com/embed') ||
+           u.includes('player.twitch.tv') ||
+           u.includes('twitch.tv/embed') ||
+           u.includes('clips.twitch.tv/embed') ||
+           u.includes('player.kick.com') ||
+           u.includes('kick.com/popout') ||
+           u.includes('tiktok.com/embed') ||
+           u.includes('open.spotify.com/embed') ||
+           u.includes('w.soundcloud.com/player') ||
+           u.includes('player.vimeo.com/video') ||
+           u.includes('platform.twitter.com/embed') ||
+           u.includes('localhost') ||
+           u.includes('127.0.0.1');
+}
+
 function formatTabUrl(inputUrl) {
     let url = (inputUrl || '').trim();
     if (!url) return '';
@@ -3951,16 +3969,17 @@ function formatTabUrl(inputUrl) {
         const parsed = new URL(url);
         const rawHost = parsed.hostname.toLowerCase();
         const host = rawHost.replace(/^(www\.|m\.|music\.|gaming\.)/, '');
+        const pathParts = parsed.pathname.split('/').filter(Boolean);
 
         // Auto-convert ALL YouTube URLs (m.youtube.com, youtube.com, youtu.be, shorts, live, search, playlists)
         if (host === 'youtube.com' || host === 'youtu.be') {
             let videoId = null;
             if (host === 'youtu.be') {
-                videoId = parsed.pathname.replace(/^\//, '').split('/')[0];
+                videoId = pathParts[0];
             } else if (parsed.pathname.startsWith('/watch')) {
                 videoId = parsed.searchParams.get('v');
             } else if (parsed.pathname.startsWith('/shorts/') || parsed.pathname.startsWith('/live/') || parsed.pathname.startsWith('/v/')) {
-                videoId = parsed.pathname.split('/')[2];
+                videoId = pathParts[1] || pathParts[0];
             } else if (parsed.pathname.startsWith('/embed/')) {
                 videoId = null; // already an embed URL
             }
@@ -3975,15 +3994,23 @@ function formatTabUrl(inputUrl) {
             } else if (searchQuery) {
                 url = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(searchQuery)}`;
             } else if (parsed.pathname === '/' || parsed.pathname === '') {
-                // If user pasted generic homepage (like https://m.youtube.com/), default to YouTube trending embed
                 url = `https://www.youtube.com/embed?listType=user_uploads&list=YouTube`;
             }
         }
 
-        // Auto-convert Twitch channel links to Twitch embed player
-        if (host === 'twitch.tv') {
-            const pathParts = parsed.pathname.split('/').filter(Boolean);
-            if (pathParts.length === 1 && !['directory', 'videos', 'settings', 'p'].includes(pathParts[0].toLowerCase())) {
+        // Auto-convert Twitch channel, clips, VODs, chat links to Twitch embed player
+        if (host === 'twitch.tv' || host === 'clips.twitch.tv') {
+            if (host === 'clips.twitch.tv') {
+                const clipId = pathParts[0];
+                if (clipId) url = `https://clips.twitch.tv/embed?clip=${clipId}&parent=${parentHost}&muted=false`;
+            } else if (pathParts.length >= 2 && pathParts[0].toLowerCase() === 'videos') {
+                const videoId = pathParts[1];
+                url = `https://player.twitch.tv/?video=${videoId}&parent=${parentHost}&muted=false`;
+            } else if (pathParts.includes('clip')) {
+                const clipIndex = pathParts.indexOf('clip');
+                const clipId = pathParts[clipIndex + 1];
+                if (clipId) url = `https://clips.twitch.tv/embed?clip=${clipId}&parent=${parentHost}&muted=false`;
+            } else if (pathParts.length === 1 && !['directory', 'settings', 'p', 'search'].includes(pathParts[0].toLowerCase())) {
                 const ch = pathParts[0];
                 url = `https://player.twitch.tv/?channel=${ch}&parent=${parentHost}&muted=false`;
             } else if ((pathParts.length === 2 && pathParts[1] === 'chat') || (pathParts.length === 3 && pathParts[0] === 'popout' && pathParts[2] === 'chat')) {
@@ -3994,13 +4021,54 @@ function formatTabUrl(inputUrl) {
 
         // Auto-convert Kick URLs
         if (host === 'kick.com') {
-            const pathParts = parsed.pathname.split('/').filter(Boolean);
-            if (pathParts.length === 1 && !['browse', 'categories', 'following'].includes(pathParts[0].toLowerCase())) {
+            if (pathParts.length >= 2 && pathParts[0].toLowerCase() === 'video') {
+                const videoId = pathParts[1];
+                url = `https://player.kick.com/video/${videoId}`;
+            } else if (pathParts.length === 1 && !['browse', 'categories', 'following'].includes(pathParts[0].toLowerCase())) {
                 const ch = pathParts[0];
                 url = `https://player.kick.com/${ch}`;
             } else if (pathParts.length >= 2 && pathParts.includes('chat')) {
                 const ch = pathParts[0] === 'popout' ? pathParts[1] : pathParts[0];
                 url = `https://kick.com/popout/${ch}/chat`;
+            }
+        }
+
+        // Auto-convert TikTok URLs
+        if (host === 'tiktok.com') {
+            const videoIndex = pathParts.indexOf('video');
+            if (videoIndex !== -1 && pathParts[videoIndex + 1]) {
+                const videoId = pathParts[videoIndex + 1];
+                url = `https://www.tiktok.com/embed/v2/${videoId}`;
+            }
+        }
+
+        // Auto-convert Spotify URLs to Embeds
+        if (host === 'spotify.com' || host === 'open.spotify.com') {
+            if (!parsed.pathname.startsWith('/embed/')) {
+                if (pathParts.length >= 2) {
+                    const type = pathParts[0]; // track, playlist, album, episode
+                    const id = pathParts[1];
+                    url = `https://open.spotify.com/embed/${type}/${id}`;
+                }
+            }
+        }
+
+        // Auto-convert SoundCloud URLs
+        if (host === 'soundcloud.com' && !url.includes('w.soundcloud.com/player')) {
+            url = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`;
+        }
+
+        // Auto-convert Vimeo URLs
+        if (host === 'vimeo.com' && pathParts.length === 1 && /^\d+$/.test(pathParts[0])) {
+            url = `https://player.vimeo.com/video/${pathParts[0]}`;
+        }
+
+        // Auto-convert X / Twitter URLs
+        if ((host === 'twitter.com' || host === 'x.com') && pathParts.includes('status')) {
+            const statusIdx = pathParts.indexOf('status');
+            const tweetId = pathParts[statusIdx + 1];
+            if (tweetId) {
+                url = `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}&theme=dark`;
             }
         }
     } catch (e) {}
@@ -4010,7 +4078,16 @@ function formatTabUrl(inputUrl) {
 
 function getEmbedSource(tab) {
     if (!tab || !tab.url) return 'about:blank';
-    if (tab.useProxy) {
+    // Dedicated local routes for StreamElements dashboard to preserve TanStack Router pathname
+    if (tab.url.includes('streamelements.com/dashboard')) {
+        return '/dashboard';
+    }
+    if (tab.url.includes('streamelements.com/activity-feed')) {
+        return '/activity-feed';
+    }
+    // If explicitly set, use that; otherwise auto-detect based on whether it's native embed
+    const shouldProxy = tab.useProxy !== undefined ? tab.useProxy : !isNativeEmbedUrl(tab.url);
+    if (shouldProxy) {
         return '/api/unframe-proxy?url=' + encodeURIComponent(tab.url);
     }
     return tab.url;
@@ -4032,19 +4109,138 @@ function saveNewTab() {
     let defaultTitle = platform.name;
     try {
         const parsed = new URL(url);
-        defaultTitle = parsed.hostname.replace('www.', '');
+        defaultTitle = platform.name !== 'Web' ? platform.name : parsed.hostname.replace('www.', '');
     } catch(e) {}
 
     const title = rawTitle || defaultTitle;
     const tabId = 'custom_tab_' + Date.now();
-    const newTab = { id: tabId, title: title, url: url };
+    const useProxy = !isNativeEmbedUrl(url);
+    const newTab = { id: tabId, title: title, url: url, rawUrl: rawUrl, useProxy: useProxy };
 
     customTabs.push(newTab);
     saveCustomTabsToStorage();
     renderTabs();
     closeAddPageModal();
     switchToTab(tabId);
-    showNotification(`Opened "${title}" 🌐`, 'success');
+    showNotification(`Opened "${title}" (Top: Web | Bottom: Chat) 🌐`, 'success');
+}
+
+function quickOpenSplitView(rawUrl, optionalTitle) {
+    let url = (rawUrl || $('#quickSplitUrlInput').val() || '').trim();
+    if (!url) {
+        showNotification('Please enter a website or stream URL.', 'warning');
+        if ($('#quickSplitUrlInput').length) $('#quickSplitUrlInput').focus();
+        return;
+    }
+
+    const formatted = formatTabUrl(url);
+    const platform = getTabPlatform(formatted);
+    let defaultTitle = platform.name;
+    try {
+        const parsed = new URL(formatted);
+        defaultTitle = platform.name !== 'Web' ? platform.name : parsed.hostname.replace('www.', '');
+    } catch(e) {}
+
+    const title = optionalTitle || defaultTitle;
+    const tabId = 'custom_tab_' + Date.now();
+    const useProxy = !isNativeEmbedUrl(formatted);
+    const newTab = { id: tabId, title: title, url: formatted, rawUrl: url, useProxy: useProxy };
+
+    customTabs.push(newTab);
+    saveCustomTabsToStorage();
+    renderTabs();
+    switchToTab(tabId);
+    if ($('#quickSplitUrlInput').length) $('#quickSplitUrlInput').val('');
+    showNotification(`Opened "${title}" (Top: Web | Bottom: Chat) 🌐`, 'success');
+}
+
+function setQuickPreset(type) {
+    const input = $('#quickSplitUrlInput');
+    const modalInput = $('#newTabUrl');
+    let targetInput = input.length && input.is(':visible') ? input : modalInput;
+    let url = '';
+    let title = '';
+
+    if (type === 'youtube') {
+        url = 'https://www.youtube.com/watch?v=';
+        title = 'YouTube';
+    } else if (type === 'kick') {
+        url = 'https://kick.com/';
+        title = 'Kick Stream';
+    } else if (type === 'twitch') {
+        url = 'https://twitch.tv/';
+        title = 'Twitch Stream';
+    } else if (type === 'tiktok') {
+        url = 'https://www.tiktok.com/';
+        title = 'TikTok';
+    } else if (type === 'streamelements') {
+        url = 'https://streamelements.com/dashboard/activity-feed';
+        title = 'StreamElements';
+    } else if (type === 'spotify') {
+        url = 'https://open.spotify.com/';
+        title = 'Spotify';
+    } else if (type === 'wiki') {
+        url = 'https://en.wikipedia.org/wiki/Live_streaming';
+        title = 'Wikipedia';
+    }
+
+    if (targetInput.length) {
+        targetInput.val(url).focus();
+    }
+    if ($('#newTabTitle').length && title) {
+        $('#newTabTitle').val(title);
+    }
+}
+
+function navigateTabUrl(tabId) {
+    const input = document.getElementById(`tab_url_input_${tabId}`);
+    if (!input) return;
+    const rawUrl = input.value.trim();
+    if (!rawUrl) return;
+
+    const tab = customTabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    const formatted = formatTabUrl(rawUrl);
+    tab.rawUrl = rawUrl;
+    tab.url = formatted;
+    tab.useProxy = !isNativeEmbedUrl(formatted);
+
+    const platform = getTabPlatform(formatted);
+    try {
+        const parsed = new URL(formatted);
+        tab.title = platform.name !== 'Web' ? platform.name : parsed.hostname.replace('www.', '');
+    } catch(e) {}
+
+    saveCustomTabsToStorage();
+
+    $(`#tab_header_${tabId} .tab-title-text`).text(tab.title);
+    $(`#tab_header_${tabId} .tab-icon`).text(platform.icon);
+    $(`#tab_view_${tabId} .custom-tab-platform-icon`).text(platform.icon);
+    $(`#tab_view_${tabId} .custom-url-title`).text(tab.title);
+    $(`#tab_view_${tabId} .proxy-toggle-btn`).html(`🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}`);
+
+    const iframe = document.getElementById(`frame_${tabId}`);
+    if (iframe) {
+        iframe.src = getEmbedSource(tab);
+    }
+    showNotification(`Loaded "${tab.title}" 🌐`, 'info');
+}
+
+function handleTabFrameError(tabId) {
+    const tab = customTabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    if (!tab.useProxy) {
+        tab.useProxy = true;
+        saveCustomTabsToStorage();
+        $(`#tab_view_${tabId} .proxy-toggle-btn`).html('🛡️ Proxy: ON');
+        const iframe = document.getElementById(`frame_${tabId}`);
+        if (iframe) {
+            iframe.src = getEmbedSource(tab);
+        }
+        showNotification('Switched to Unframe Proxy to bypass restrictions 🛡️', 'info');
+    }
 }
 
 function editCustomTab(tabId) {
@@ -4053,7 +4249,7 @@ function editCustomTab(tabId) {
 
     $('#editTabId').val(tab.id);
     $('#editTabTitle').val(tab.title);
-    $('#editTabUrl').val(tab.url);
+    $('#editTabUrl').val(tab.rawUrl || tab.url);
     openEditPageModal();
 }
 
@@ -4074,15 +4270,18 @@ function saveEditedTab() {
     }
 
     tab.title = newTitle;
+    tab.rawUrl = newRawUrl;
     tab.url = formatTabUrl(newRawUrl);
+    tab.useProxy = !isNativeEmbedUrl(tab.url);
 
     saveCustomTabsToStorage();
     closeEditPageModal();
     
     // Update existing DOM elements
     $(`#tab_header_${tabId} .tab-title-text`).text(tab.title);
-    $(`#tab_view_${tabId} .custom-url-bar span:first-child`).text(tab.title);
-    $(`#tab_view_${tabId} .custom-url-bar span:last-child`).text(tab.url);
+    $(`#tab_view_${tabId} .custom-url-title`).text(tab.title);
+    $(`#tab_view_${tabId} .custom-url-input`).val(tab.rawUrl || tab.url);
+    $(`#tab_view_${tabId} .proxy-toggle-btn`).html(`🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}`);
     
     const iframe = document.getElementById(`frame_${tabId}`);
     if (iframe) {
@@ -4206,10 +4405,19 @@ function isMobileDevice() {
 }
 
 function openTabExternal(tabId, url) {
-    if (!url) return;
+    let targetUrl = (url || '').trim();
+    if (!targetUrl) {
+        const tab = customTabs.find(t => t.id === tabId);
+        if (tab) targetUrl = tab.url || tab.rawUrl || '';
+    }
+    if (!targetUrl) return;
+
+    if (!/^https?:\/\//i.test(targetUrl)) {
+        targetUrl = 'https://' + targetUrl;
+    }
 
     if (isMobileDevice()) {
-        window.open(url, '_blank');
+        window.open(targetUrl, '_blank');
         return;
     }
 
@@ -4224,11 +4432,76 @@ function openTabExternal(tabId, url) {
         return;
     }
 
-    const win = window.open(url, winName, `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=yes`);
+    const win = window.open(targetUrl, winName, `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=yes`);
     if (win) {
         externalTabWindows[tabId] = win;
     }
 }
+
+function openTabLogin(tabId, url) {
+    let targetUrl = (url || '').trim();
+    if (!targetUrl) {
+        const tab = customTabs.find(t => t.id === tabId);
+        if (tab) targetUrl = tab.url || tab.rawUrl || '';
+    }
+    if (!targetUrl) return;
+
+    if (!/^https?:\/\//i.test(targetUrl)) {
+        targetUrl = 'https://' + targetUrl;
+    }
+
+    // Direct to dedicated login endpoints when known
+    if (targetUrl.includes('streamelements.com') && !targetUrl.includes('/login')) {
+        targetUrl = 'https://streamelements.com/login?return=%2Fdashboard';
+    }
+
+    // Open as a standard new browser tab with noopener,noreferrer
+    // This removes window.opener so Twitch/Google bot-detectors don't trigger "browser not supported"
+    const win = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    if (win) {
+        showNotification('Opened login tab! Sign in with your browser, then click 🔄 Reload to sync.', 'info');
+    }
+}
+
+async function promptStreamElementsToken(tabId) {
+    const current = localStorage.getItem('se_jwt_token') || '';
+    const token = prompt(
+        "⚡ Connect StreamElements Dashboard:\n\n" +
+        "1. In your StreamElements window, click your avatar (top-right) -> 'Account Settings'.\n" +
+        "2. Click 'Channels' -> click 'Show Secrets'.\n" +
+        "3. Copy your 'JWT Token' and paste it here:\n",
+        current
+    );
+    if (token !== null && token.trim()) {
+        const clean = token.trim();
+        localStorage.setItem('se_jwt_token', clean);
+        try {
+            await fetch('/api/streamelements-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: clean })
+            });
+            showNotification('StreamElements Token connected! Syncing dashboard...', 'success');
+            reloadTabFrame(tabId);
+        } catch(e) {
+            showNotification('Failed to save token: ' + e.message, 'error');
+        }
+    }
+}
+
+// Auto-sync stored StreamElements token to server on startup
+(function syncStoredSeToken() {
+    try {
+        const t = localStorage.getItem('se_jwt_token');
+        if (t) {
+            fetch('/api/streamelements-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: t })
+            }).catch(() => {});
+        }
+    } catch(e) {}
+})();
 
 function toggleProxyTab(tabId) {
     const tab = customTabs.find(t => t.id === tabId);
@@ -4272,15 +4545,28 @@ function renderTabs() {
                 <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}" style="display: flex; flex-direction: column; height: 100%;">
                     <!-- Top Web Navigation & Control Toolbar -->
                     <div class="custom-web-toolbar">
-                        <span style="font-size: 1.1em; flex-shrink: 0;">${platform.icon}</span>
-                        <div class="custom-url-bar" title="${escapeHtml(tab.url)}">
-                            <span style="color: #e3e5eb; font-weight: 600; white-space: nowrap;">${escapeHtml(tab.title)}</span>
-                            <span style="color: #484d64; font-size: 0.85em;">|</span>
-                            <span style="color: #727a94; font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${escapeHtml(tab.url)}</span>
+                        <span class="custom-tab-platform-icon" style="font-size: 1.1em; flex-shrink: 0;">${platform.icon}</span>
+                        <div class="custom-url-bar">
+                            <span class="custom-url-title" title="${escapeHtml(tab.title)}">${escapeHtml(tab.title)}</span>
+                            <span class="custom-url-separator">|</span>
+                            <input 
+                                type="text" 
+                                class="custom-url-input" 
+                                id="tab_url_input_${tab.id}" 
+                                value="${escapeHtml(tab.rawUrl || tab.url)}" 
+                                placeholder="Enter any URL (e.g. kick.com, youtube.com, wikipedia.org)..."
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();navigateTabUrl('${tab.id}');}"
+                                title="Type or paste any URL and hit Enter"
+                            >
+                            <button class="custom-url-go-btn" onclick="navigateTabUrl('${tab.id}')" title="Navigate to URL">↵ Go</button>
                         </div>
                         <button class="custom-web-btn" onclick="reloadTabFrame('${tab.id}')" title="Reload Webpage">🔄 Reload</button>
+                        ${tab.url.includes('streamelements') ? `
+                        <button class="custom-web-btn" onclick="promptStreamElementsToken('${tab.id}')" style="background: linear-gradient(135deg, rgba(88,166,255,0.25), rgba(145,70,255,0.3)); border-color: rgba(88,166,255,0.6); font-weight: bold; color: #79c0ff;" title="Connect StreamElements JWT Token to load live private dashboard & overlays">🔑 Connect SE Token</button>
+                        ` : ''}
+                        <button class="custom-web-btn" onclick="openTabLogin('${tab.id}')" title="Login Companion: Open direct login window for sites requiring browser sign-in / OAuth / Passkeys">🔑 Login</button>
                         <button class="custom-web-btn proxy-toggle-btn" onclick="toggleProxyTab('${tab.id}')" title="Toggle Unframe Proxy for sites that block embedding">🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}</button>
-                        <button class="custom-web-btn" onclick="openTabExternal('${tab.id}', '${escapeHtml(tab.url)}')" title="Open in Popout / Split Window">↗ Popout</button>
+                        <button class="custom-web-btn" onclick="openTabExternal('${tab.id}')" title="Open in Popout / Companion Window">↗ Popout</button>
                         <button class="custom-web-btn" onclick="editCustomTab('${tab.id}')" title="Edit Tab Title or URL">✏️ Edit</button>
                         <button class="custom-web-btn" onclick="removeTab('${tab.id}', event)" title="Close Tab" style="color: #ff5555;">✕</button>
                     </div>
@@ -4293,7 +4579,8 @@ function renderTabs() {
                             src="${escapeHtml(embedSrc)}" 
                             allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write; camera; microphone;" 
                             allowfullscreen 
-                            loading="lazy">
+                            loading="lazy"
+                            onerror="handleTabFrameError('${tab.id}')">
                         </iframe>
                     </div>
 

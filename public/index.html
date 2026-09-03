@@ -27,7 +27,10 @@
             <span class="tab-title-text">Chat Reader</span>
         </div>
         <div id="customTabsList" style="display: flex; gap: 4px;"></div>
-        <button id="addTabBtn" onclick="openAddPageModal()" title="Add Custom Website Page">+</button>
+        <button id="addTabBtn" class="add-url-tab-btn" onclick="openAddPageModal()" title="Add URL (Website/Stream on Top + Chat on Bottom)">
+            <span class="add-tab-plus">+</span>
+            <span class="add-tab-label">Add URL (Split View)</span>
+        </button>
     </div>
 
     <!-- Main Dashboard View Container -->
@@ -478,19 +481,34 @@
     <div id="addPageModalOverlay" class="tab-modal-overlay" style="display: none;" onclick="if(event.target===this) closeAddPageModal()">
         <div class="tab-modal-card">
             <div class="tab-modal-header">
-                <h3><span>🌐</span> Add Custom Website Page</h3>
+                <h3><span>🌐</span> Add URL (Top: Web | Bottom: Chat)</h3>
                 <button class="tab-modal-close" onclick="closeAddPageModal()">✕</button>
             </div>
             <div class="tab-modal-body">
-                <label for="newTabUrl">Website URL</label>
-                <input type="text" id="newTabUrl" placeholder="Paste any website link (e.g. google.com, kick.com, youtube.com)" autocomplete="off" onkeypress="if(event.key==='Enter') saveNewTab()">
+                <label style="margin-top: 0;">Quick Presets</label>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+                    <button type="button" class="quick-preset-chip" onclick="setQuickPreset('youtube')">🔴 YouTube</button>
+                    <button type="button" class="quick-preset-chip" onclick="setQuickPreset('kick')">💚 Kick</button>
+                    <button type="button" class="quick-preset-chip" onclick="setQuickPreset('twitch')">💜 Twitch</button>
+                    <button type="button" class="quick-preset-chip" onclick="setQuickPreset('tiktok')">🎵 TikTok</button>
+                    <button type="button" class="quick-preset-chip" onclick="setQuickPreset('streamelements')">⚡ StreamElements</button>
+                    <button type="button" class="quick-preset-chip" onclick="setQuickPreset('spotify')">🟢 Spotify</button>
+                    <button type="button" class="quick-preset-chip" onclick="setQuickPreset('wiki')">📖 Wikipedia</button>
+                </div>
+
+                <label for="newTabUrl">Website or Stream URL</label>
+                <input type="text" id="newTabUrl" placeholder="Enter any URL (e.g. kick.com, youtube.com, wikipedia.org)..." autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();saveNewTab();}">
                 
-                <label for="newTabTitle">Page Title (Optional)</label>
-                <input type="text" id="newTabTitle" placeholder="Leave blank to auto-detect title" autocomplete="off" onkeypress="if(event.key==='Enter') saveNewTab()">
+                <label for="newTabTitle">Tab Title (Optional)</label>
+                <input type="text" id="newTabTitle" placeholder="Auto-detected from URL if left empty" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();saveNewTab();}">
+
+                <div style="margin-top: 14px; padding: 10px 12px; background: rgba(88, 166, 255, 0.08); border: 1px solid rgba(88, 166, 255, 0.2); border-radius: 8px; font-size: 0.82em; color: #9bb0d3; line-height: 1.45;">
+                    💡 <strong>Any URL works:</strong> Video platforms (YouTube, Twitch, Kick) auto-convert to responsive embed players. General websites auto-enable the built-in <strong>Unframe Proxy</strong> to bypass anti-embedding blocks.
+                </div>
             </div>
             <div class="tab-modal-footer">
                 <button class="tab-btn-secondary" onclick="closeAddPageModal()">Cancel</button>
-                <button class="tab-btn-primary" onclick="saveNewTab()">Add Page</button>
+                <button class="tab-btn-primary" onclick="saveNewTab()">Open Split View 🚀</button>
             </div>
         </div>
     </div>

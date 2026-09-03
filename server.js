@@ -138,82 +138,356 @@ app.use(express.static('public', {
         }
     }
 }));
-app.use(express.json());
+// Support JSON and Form URL-encoded data for proxy form submissions and logins
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Suppress Cloudflare RUM beacon 404s
 app.all('/cdn-cgi/*', (req, res) => res.status(204).end());
 
+// Automatically redirect bare domain requests (e.g. http://localhost:8081/streamelements.com) directly to https://
+app.use((req, res, next) => {
+    const raw = req.path.replace(/^\//, '');
+    const ignoredExtensions = ['.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.json', '.woff', '.woff2', '.map'];
+    if (!ignoredExtensions.some(ext => raw.toLowerCase().endsWith(ext)) && /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/.*)?$/.test(raw)) {
+        return res.redirect('https://' + raw);
+    }
+    next();
+});
+
 // Proxy root-relative /assets/* requests dynamically
 app.get('/assets/*', async (req, res) => {
-    const targetUrl = `https://streamelements.com${req.originalUrl}`;
+    const referer = req.headers['referer'] || '';
+    let targetOrigin = 'https://streamelements.com';
+    if (referer.includes('url=')) {
+        try {
+            const refUrl = new URL(referer);
+            const raw = refUrl.searchParams.get('url');
+            if (raw) targetOrigin = new URL(raw).origin;
+        } catch(e) {}
+    }
+    const targetUrl = `${targetOrigin}${req.originalUrl}`;
     try {
         const response = await axios.get(targetUrl, {
             responseType: 'arraybuffer',
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Referer': targetOrigin,
+                ...(currentStreamElementsToken ? {
+                    'Authorization': `Bearer ${currentStreamElementsToken}`,
+                    'Cookie': `id_token_creator=${currentStreamElementsToken}; se-token=${currentStreamElementsToken}; token=${currentStreamElementsToken}`
+                } : {})
             },
-            timeout: 10000
+            timeout: 10000,
+            validateStatus: () => true
         });
-        let contentType = response.headers['content-type'] || '';
-        const cleanUrl = req.path.split('?')[0].toLowerCase();
-        if (cleanUrl.endsWith('.css')) contentType = 'text/css; charset=utf-8';
-        else if (cleanUrl.endsWith('.js') || cleanUrl.endsWith('.mjs')) contentType = 'application/javascript; charset=utf-8';
-        else if (cleanUrl.endsWith('.svg')) contentType = 'image/svg+xml';
-        else if (cleanUrl.endsWith('.png')) contentType = 'image/png';
-        else if (cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) contentType = 'image/jpeg';
-        else if (cleanUrl.endsWith('.woff2')) contentType = 'font/woff2';
-        else if (cleanUrl.endsWith('.woff')) contentType = 'font/woff';
-
+        let contentType = response.headers['content-type'];
+        if (!contentType || contentType === 'application/octet-stream') {
+            if (req.path.endsWith('.js')) contentType = 'text/javascript';
+            else if (req.path.endsWith('.css')) contentType = 'text/css';
+            else if (req.path.endsWith('.json')) contentType = 'application/json';
+            else contentType = 'application/octet-stream';
+        }
         res.setHeader('Content-Type', contentType);
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.send(Buffer.from(response.data));
-    } catch (e) {
-        res.status(404).send('Asset Proxy Error');
+        res.removeHeader('X-Frame-Options');
+        res.removeHeader('Content-Security-Policy');
+        res.status(response.status).send(response.data);
+    } catch(e) {
+        res.status(404).send('Not Found');
     }
 });
 
-// === Universal Un-Framing Proxy ===
+// Global tracked origin and asset directory for SPA chunk resolution
+let activeProxyOrigin = 'https://streamelements.com';
+let activeAssetDir = 'https://streamelements.com/assets/dashboard/';
+let currentStreamElementsToken = process.env.STREAMELEMENTS_JWT_TOKEN || '';
+
+// Endpoints to store and retrieve StreamElements JWT Token
+app.post('/api/streamelements-token', express.json(), (req, res) => {
+    const { token } = req.body || {};
+    if (token) {
+        currentStreamElementsToken = token.trim();
+        process.env.STREAMELEMENTS_JWT_TOKEN = currentStreamElementsToken;
+        try {
+            const envPath = path.join(__dirname, '.env');
+            let envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+            if (envContent.includes('STREAMELEMENTS_JWT_TOKEN=')) {
+                envContent = envContent.replace(/STREAMELEMENTS_JWT_TOKEN=.*/g, `STREAMELEMENTS_JWT_TOKEN=${currentStreamElementsToken}`);
+            } else {
+                envContent += `\nSTREAMELEMENTS_JWT_TOKEN=${currentStreamElementsToken}\n`;
+            }
+            fs.writeFileSync(envPath, envContent);
+        } catch(e) {}
+        return res.json({ success: true, hasToken: true });
+    }
+    return res.status(400).json({ error: 'Token is required' });
+});
+
+app.get('/api/streamelements-token', (req, res) => {
+    res.json({ hasToken: !!currentStreamElementsToken });
+});
+
+// Helper to rewrite and sanitize cookies for localhost iframe compatibility
+function sanitizeCookiesForProxy(rawCookies) {
+    if (!rawCookies) return [];
+    const list = Array.isArray(rawCookies) ? rawCookies : [rawCookies];
+    return list.map(c => {
+        return c
+            .replace(/Domain=[^;]+;?\s*/gi, '')
+            .replace(/Secure;?\s*/gi, '')
+            .replace(/SameSite=[^;]+;?\s*/gi, '')
+            .trim() + '; SameSite=None';
+    });
+}
+
+// === Universal Un-Framing Proxy (Supports GET, POST, Forms, Logins, Cookies) ===
 const handleUnframeProxy = async (req, res) => {
     try {
-        let targetUrl = req.query.url;
+        let targetUrl = req.query.url || (req.body && req.body.url);
         if (!targetUrl) return res.status(400).send('Missing target URL parameter (?url=)');
         if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
 
-        const response = await axios.get(targetUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9'
-            },
-            timeout: 12000,
+        const forwardHeaders = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': targetUrl
+        };
+
+        if (req.headers['cookie']) {
+            forwardHeaders['Cookie'] = req.headers['cookie'];
+        }
+        if (req.headers['content-type']) {
+            forwardHeaders['Content-Type'] = req.headers['content-type'];
+        }
+
+        // Attach StreamElements JWT token authentication if targeting StreamElements
+        if (targetUrl.includes('streamelements.com')) {
+            const seToken = req.headers['x-se-token'] || req.query.se_token || currentStreamElementsToken;
+            if (seToken) {
+                forwardHeaders['Authorization'] = `Bearer ${seToken}`;
+                const cookieParts = [
+                    forwardHeaders['Cookie'] || '',
+                    `id_token_creator=${seToken}`,
+                    `se-token=${seToken}`,
+                    `token=${seToken}`
+                ].filter(Boolean);
+                forwardHeaders['Cookie'] = cookieParts.join('; ');
+            }
+        }
+
+        const axiosConfig = {
+            method: req.method || 'GET',
+            url: targetUrl,
+            headers: forwardHeaders,
+            timeout: 15000,
             responseType: 'text',
-            maxRedirects: 5
-        });
+            maxRedirects: 5,
+            validateStatus: () => true
+        };
+
+        // If POST or PUT (e.g. form login submission), serialize and forward payload
+        if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+            if (req.is('application/x-www-form-urlencoded')) {
+                const querystring = require('querystring');
+                axiosConfig.data = querystring.stringify(req.body);
+            } else if (req.is('application/json')) {
+                axiosConfig.data = req.body;
+            } else {
+                axiosConfig.data = req.body;
+            }
+        }
+
+        const response = await axios(axiosConfig);
+
+        // Forward session and login cookies back to client
+        if (response.headers['set-cookie']) {
+            const rewrittenCookies = sanitizeCookiesForProxy(response.headers['set-cookie']);
+            if (rewrittenCookies.length) {
+                res.setHeader('Set-Cookie', rewrittenCookies);
+            }
+        }
+
+        const contentType = response.headers['content-type'] || '';
+        // If not HTML (e.g. redirected to image, JSON API response, file download), stream directly
+        if (!contentType.includes('text/html')) {
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.removeHeader('X-Frame-Options');
+            res.removeHeader('Content-Security-Policy');
+            return res.status(response.status).send(response.data);
+        }
 
         let html = response.data;
         if (typeof html === 'string') {
-            const origin = new URL(targetUrl).origin;
+            const parsedTarget = new URL(targetUrl);
+            const origin = parsedTarget.origin;
+            activeProxyOrigin = origin;
+            activeAssetDir = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
             const protocol = (req.headers['x-forwarded-proto'] || req.protocol).split(',')[0].trim();
             const host = req.get('host');
+            // Crucial: Use absolute local URLs so <base href> does not hijack them to the remote domain
             const localProxyPrefix = `${protocol}://${host}/api/proxy-asset?url=`;
+            const localUnframePrefix = `${protocol}://${host}/api/unframe-proxy?url=`;
 
             const $ = cheerio.load(html);
 
-            // Prepend base tag so relative URLs resolve against target origin
-            if ($('head').length) {
-                $('head').prepend(`<base href="${origin}/">`);
-                $('head').prepend(`
-                    <script>
+            const baseTag = targetUrl.includes('streamelements.com') ? '<base href="/">' : `<base href="${origin}/">`;
+            const injectedScripts = `
+                ${baseTag}
+                <script>
+                    (function() {
                         try {
-                            // Neutralize frame-busters
-                            Object.defineProperty(window, 'self', { get: () => window.top, configurable: true });
-                            Object.defineProperty(window, 'top', { get: () => window.self, configurable: true });
-                            Object.defineProperty(window, 'parent', { get: () => window.self, configurable: true });
+                            // 1. Defeat frame-busters cleanly (no infinite getter recursion)
+                            Object.defineProperty(window, 'top', { get: () => window, configurable: true });
+                            Object.defineProperty(window, 'parent', { get: () => window, configurable: true });
+                            Object.defineProperty(window, 'frameElement', { get: () => null, configurable: true });
                         } catch(e) {}
-                    </script>
-                `);
+
+                        // Safe DOM element retrieval for React createRoot
+                        try {
+                            const _origGetElem = document.getElementById.bind(document);
+                            document.getElementById = function(id) {
+                                let el = _origGetElem(id);
+                                if (!el && id === 'root') {
+                                    el = document.querySelector('#root');
+                                    if (!el && document.body) {
+                                        el = document.createElement('div');
+                                        el.id = 'root';
+                                        document.body.prepend(el);
+                                    }
+                                }
+                                return el;
+                            };
+                        } catch(e) {}
+
+                        ${targetUrl.includes('streamelements.com') && currentStreamElementsToken ? `
+                        try {
+                            document.cookie = "id_token_creator=${currentStreamElementsToken}; path=/; max-age=31536000";
+                            document.cookie = "se-token=${currentStreamElementsToken}; path=/; max-age=31536000";
+                            localStorage.setItem("StreamElements.id_token", "${currentStreamElementsToken}");
+                            localStorage.setItem("se-token", "${currentStreamElementsToken}");
+                            localStorage.setItem("token", "${currentStreamElementsToken}");
+                        } catch(e) {}
+                        ` : ''}
+
+                        // 2. Intercept fetch for SPAs, React hydration, and dynamic AJAX calls
+                        try {
+                            const _origFetch = window.fetch;
+                            if (_origFetch) {
+                                window.fetch = function(resource, init) {
+                                    try {
+                                        let u = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
+                                        if (u && !u.startsWith('data:') && !u.startsWith('blob:')) {
+                                            const abs = new URL(u, "${origin}").href;
+                                            if (!abs.startsWith("${protocol}://${host}")) {
+                                                const proxied = "${localProxyPrefix}" + encodeURIComponent(abs);
+                                                if (typeof resource === 'string') {
+                                                    return _origFetch(proxied, init);
+                                                } else {
+                                                    return _origFetch(new Request(proxied, resource), init);
+                                                }
+                                            }
+                                        }
+                                    } catch(err) {}
+                                    return _origFetch(resource, init);
+                                };
+                            }
+                        } catch(e) {}
+
+                        // 3. Intercept XMLHttpRequest for legacy, analytics, and chunk requests
+                        try {
+                            const _origXhrOpen = XMLHttpRequest.prototype.open;
+                            XMLHttpRequest.prototype.open = function(method, u, ...args) {
+                                try {
+                                    if (u && typeof u === 'string' && !u.startsWith('data:') && !u.startsWith('blob:')) {
+                                        const abs = new URL(u, "${origin}").href;
+                                        if (!abs.startsWith("${protocol}://${host}")) {
+                                            u = "${localProxyPrefix}" + encodeURIComponent(abs);
+                                        }
+                                    }
+                                } catch(err) {}
+                                return _origXhrOpen.call(this, method, u, ...args);
+                            };
+                        } catch(e) {}
+
+                        // 4. Intercept form submissions dynamically (preserves login actions)
+                        window.addEventListener('submit', function(e) {
+                            try {
+                                const form = e.target;
+                                if (form && form.action) {
+                                    const abs = new URL(form.action, "${origin}").href;
+                                    if (!abs.startsWith("${protocol}://${host}/api/unframe-proxy")) {
+                                        form.action = "${localUnframePrefix}" + encodeURIComponent(abs);
+                                    }
+                                }
+                            } catch(err) {}
+                        }, true);
+
+                        // 5. OAuth & Popup escape helper
+                        function isAuthOrOAuth(u) {
+                            if (!u) return false;
+                            const s = u.toLowerCase();
+                            return s.includes('id.twitch.tv') ||
+                                   s.includes('accounts.google.com') ||
+                                   s.includes('appleid.apple.com') ||
+                                   s.includes('discord.com/oauth2') ||
+                                   s.includes('discord.com/api/oauth2') ||
+                                   s.includes('facebook.com/dialog/oauth') ||
+                                   s.includes('api.streamelements.com/kappa/v2/channels/login') ||
+                                   s.includes('auth.streamelements.com') ||
+                                   s.includes('/login/twitch') ||
+                                   s.includes('/login/youtube') ||
+                                   s.includes('twitter.com/i/oauth2') ||
+                                   s.includes('steamcommunity.com/openid');
+                        }
+
+                        // 6. Support OAuth popup windows escaping iframe restrictions
+                        try {
+                            const _origOpen = window.open;
+                            window.open = function(url, name, specs) {
+                                if (url) {
+                                    try {
+                                        const abs = new URL(url, "${origin}").href;
+                                        if (isAuthOrOAuth(abs)) {
+                                            return window.parent ? window.parent.open(abs, '_blank', 'noopener,noreferrer') : _origOpen.call(window, abs, '_blank', 'noopener,noreferrer');
+                                        }
+                                    } catch(err) {}
+                                }
+                                return _origOpen.apply(window, arguments);
+                            };
+                        } catch(e) {}
+
+                        // 7. Non-destructive link navigation: do NOT call preventDefault/stopPropagation
+                        // so that React/Vue/SPA frameworks and dropdown menus work normally.
+                        // Only redirect if it's an OAuth login link.
+                        document.addEventListener('click', function(e) {
+                            try {
+                                let el = e.target;
+                                while (el && el.tagName !== 'A' && el !== document.body) {
+                                    el = el.parentElement;
+                                }
+                                if (el && el.tagName === 'A') {
+                                    const href = el.getAttribute('href') || el.href;
+                                    if (href && isAuthOrOAuth(href)) {
+                                        e.preventDefault();
+                                        const abs = new URL(href, "${origin}").href;
+                                        window.open(abs, '_blank', 'noopener,noreferrer');
+                                    }
+                                }
+                            } catch(err) {}
+                        }, false);
+                    })();
+                </script>
+            `;
+
+            // Remove any existing base tags and prepend our proxy base and scripts
+            $('base').remove();
+            if ($('head').length) {
+                $('head').prepend(injectedScripts);
             } else {
-                $.root().prepend(`<base href="${origin}/">`);
+                $.root().prepend(injectedScripts);
             }
 
             // Rewrite ALL link tags (stylesheets, modulepreload, preload, icons, manifests)
@@ -221,6 +495,10 @@ const handleUnframeProxy = async (req, res) => {
                 const href = $(el).attr('href');
                 if (href && !href.startsWith('data:') && !href.startsWith('javascript:')) {
                     try {
+                        if (targetUrl.includes('streamelements.com') && href.startsWith('/assets/')) {
+                            // Preserve root-relative /assets/ path directly so ES module resolution remains clean
+                            return;
+                        }
                         const absUrl = new URL(href, targetUrl).href;
                         $(el).attr('href', localProxyPrefix + encodeURIComponent(absUrl));
                         $(el).removeAttr('crossorigin');
@@ -233,6 +511,10 @@ const handleUnframeProxy = async (req, res) => {
                 const src = $(el).attr('src');
                 if (src && !src.startsWith('data:') && !src.startsWith('javascript:')) {
                     try {
+                        if (targetUrl.includes('streamelements.com') && src.startsWith('/assets/')) {
+                            // Preserve root-relative /assets/ path directly so ES module resolution remains clean
+                            return;
+                        }
                         const absUrl = new URL(src, targetUrl).href;
                         $(el).attr('src', localProxyPrefix + encodeURIComponent(absUrl));
                         $(el).removeAttr('crossorigin');
@@ -241,7 +523,7 @@ const handleUnframeProxy = async (req, res) => {
             });
 
             // Rewrite image, audio, video sources
-            $('img[src], audio[src], video[src], source[src]').each((_, el) => {
+            $('img[src], audio[src], video[src], source[src], iframe[src]').each((_, el) => {
                 const src = $(el).attr('src');
                 if (src && !src.startsWith('data:') && !src.startsWith('javascript:')) {
                     try {
@@ -252,14 +534,25 @@ const handleUnframeProxy = async (req, res) => {
                 }
             });
 
-            // Rewrite anchor links to navigate within the proxy
+            // Rewrite anchor links to navigate within the local proxy using fully-qualified local URLs
             $('a[href]').each((_, el) => {
                 const href = $(el).attr('href');
                 if (href && !href.startsWith('#') && !href.startsWith('javascript:') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
                     try {
                         const absUrl = new URL(href, targetUrl).href;
-                        $(el).attr('href', `/api/unframe-proxy?url=${encodeURIComponent(absUrl)}`);
+                        $(el).attr('href', `${localUnframePrefix}${encodeURIComponent(absUrl)}`);
                         $(el).attr('target', '_self');
+                    } catch (e) {}
+                }
+            });
+
+            // Rewrite form actions to submit to local proxy using fully-qualified local URLs
+            $('form[action]').each((_, el) => {
+                const action = $(el).attr('action');
+                if (action && !action.startsWith('javascript:')) {
+                    try {
+                        const absUrl = new URL(action, targetUrl).href;
+                        $(el).attr('action', `${localUnframePrefix}${encodeURIComponent(absUrl)}`);
                     } catch (e) {}
                 }
             });
@@ -292,39 +585,103 @@ const handleUnframeProxy = async (req, res) => {
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.send(html);
     } catch (e) {
+        const safeUrl = (req.query.url || (req.body && req.body.url) || '').replace(/"/g, '&quot;');
         res.status(500).send(`
-            <div style="font-family: sans-serif; padding: 30px; text-align: center; background: #12131a; color: #e3e5eb; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <h2>Unable to Embed Page Directly</h2>
-                <p style="color: #8c92a6; max-width: 480px; margin-bottom: 20px;">This website enforces strict anti-embedding or require direct browser access.</p>
-                <a href="${req.query.url}" target="_blank" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: white; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-weight: bold;">Open in External Window ↗</a>
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px 20px; text-align: center; background: #12131a; color: #e3e5eb; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box;">
+                <div style="font-size: 3rem; margin-bottom: 12px;">🛡️</div>
+                <h2 style="margin: 0 0 10px 0; font-size: 1.4rem; color: #ffffff;">Unable to Embed Page Directly</h2>
+                <p style="color: #8c92a6; max-width: 460px; line-height: 1.5; margin: 0 0 24px 0; font-size: 0.95rem;">
+                    This website enforces strict anti-embedding, bot detection, or requires direct browser login. You can open it in a companion popout window positioned above your chat.
+                </p>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+                    <a href="${safeUrl}" target="_blank" style="background: linear-gradient(90deg, #58a6ff, #9146FF); color: white; text-decoration: none; padding: 10px 22px; border-radius: 8px; font-weight: bold; font-size: 0.95rem; box-shadow: 0 4px 14px rgba(88,166,255,0.3);">Open in Popout Window ↗</a>
+                    <button onclick="window.location.reload()" style="background: #252838; color: #d0d4e4; border: 1px solid #383c54; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.95rem;">🔄 Retry</button>
+                </div>
             </div>
         `);
     }
 };
 
-app.get('/api/streamelements-proxy', handleUnframeProxy);
-app.get('/api/unframe-proxy', handleUnframeProxy);
+app.all('/api/streamelements-proxy', handleUnframeProxy);
+app.all('/api/unframe-proxy', handleUnframeProxy);
 
-// === Proxy Asset Endpoint for un-framing proxy ===
-app.get('/api/proxy-asset', async (req, res) => {
+// Dedicated route to preserve SPA routing for StreamElements Dashboard
+app.all(['/dashboard', '/dashboard/*', '/activity-feed'], (req, res) => {
+    req.query.url = 'https://streamelements.com' + req.originalUrl;
+    return handleUnframeProxy(req, res);
+});
+
+// === Proxy Asset Endpoint for un-framing proxy (handles GET, POST, OPTIONS, and chunk fallback) ===
+app.all('/api/proxy-asset', async (req, res) => {
     try {
         let targetUrl = req.query.url;
         if (!targetUrl) return res.status(400).send('Missing target URL parameter (?url=)');
         if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
+        activeProxyOrigin = new URL(targetUrl).origin;
+        activeAssetDir = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
 
-        const response = await axios.get(targetUrl, {
+        const forwardHeaders = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Referer': targetUrl
+        };
+        if (req.headers['cookie']) {
+            forwardHeaders['Cookie'] = req.headers['cookie'];
+        }
+        if (req.headers['content-type']) {
+            forwardHeaders['Content-Type'] = req.headers['content-type'];
+        }
+
+        if (targetUrl.includes('streamelements.com') && currentStreamElementsToken) {
+            forwardHeaders['Authorization'] = `Bearer ${currentStreamElementsToken}`;
+            const cp = [
+                forwardHeaders['Cookie'] || '',
+                `id_token_creator=${currentStreamElementsToken}`,
+                `se-token=${currentStreamElementsToken}`,
+                `token=${currentStreamElementsToken}`
+            ].filter(Boolean);
+            forwardHeaders['Cookie'] = cp.join('; ');
+        }
+
+        const axiosConfig = {
+            method: req.method || 'GET',
+            url: targetUrl,
             responseType: 'arraybuffer',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Referer': targetUrl
-            },
+            headers: forwardHeaders,
             timeout: 15000,
             validateStatus: () => true
-        });
+        };
 
+        if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+            axiosConfig.data = req.body;
+        }
+
+        let response = await axios(axiosConfig);
+
+        // Fallback for CDN asset chunks (e.g. if kick.com/static/chunks/... returns HTML fallback)
         const contentType = response.headers['content-type'] || 'application/octet-stream';
-        res.setHeader('Content-Type', contentType);
+        if (targetUrl.includes('kick.com/static/chunks/') && contentType.includes('text/html')) {
+            const chunkName = targetUrl.split('/chunks/').pop();
+            try {
+                const cdnUrl = `https://assets.kick.com/main/_next/static/chunks/${chunkName}`;
+                const cdnResp = await axios({ ...axiosConfig, url: cdnUrl });
+                if (cdnResp.status === 200 && !cdnResp.headers['content-type'].includes('text/html')) {
+                    response = cdnResp;
+                }
+            } catch(e) {}
+        }
+
+        // Forward and sanitize cookies from assets if any
+        if (response.headers['set-cookie']) {
+            const rewrittenCookies = sanitizeCookiesForProxy(response.headers['set-cookie']);
+            if (rewrittenCookies.length) {
+                res.setHeader('Set-Cookie', rewrittenCookies);
+            }
+        }
+
+        res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
         res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+        res.setHeader('Access-Control-Allow-Headers', '*');
         res.removeHeader('X-Frame-Options');
         res.removeHeader('Content-Security-Policy');
         res.status(response.status).send(response.data);
@@ -333,38 +690,71 @@ app.get('/api/proxy-asset', async (req, res) => {
     }
 });
 
-// Dynamic chunk proxy for Single Page Apps (Vite/React/Webpack like StreamElements)
-app.get(['/api/*.js', '/api/*.css', '/*.js', '/*.css'], async (req, res, next) => {
+// Dynamic chunk proxy for Single Page Apps (Vite/React/Webpack like StreamElements, Kick, etc.)
+app.all(['/api/*.js', '/api/*.css', '/api/*.json', '/api/*.svg', '/api/*.png', '/api/*.woff2', '/*.js', '/*.css', '/*.json'], async (req, res, next) => {
     const localFile = path.join(__dirname, 'public', req.path.replace(/^\/api\//, '/'));
     if (fs.existsSync(localFile)) {
         return next();
     }
 
     const referer = req.headers['referer'] || '';
-    if (referer.includes('unframe-proxy') || referer.includes('streamelements')) {
-        try {
-            const refererUrl = new URL(referer);
-            const originalTarget = refererUrl.searchParams.get('url') || 'https://streamelements.com';
-            const targetOrigin = new URL(originalTarget).origin;
-            const chunkUrl = targetOrigin + req.path.replace(/^\/api/, '');
+    let targetOrigin = activeProxyOrigin || 'https://streamelements.com';
+    let refDir = activeAssetDir || `${targetOrigin}/assets/dashboard/`;
 
-            const response = await axios.get(chunkUrl, {
+    if (referer.includes('url=')) {
+        try {
+            const rUrl = new URL(referer);
+            const originalTarget = rUrl.searchParams.get('url');
+            if (originalTarget) {
+                targetOrigin = new URL(originalTarget).origin;
+                refDir = originalTarget.substring(0, originalTarget.lastIndexOf('/') + 1);
+            }
+        } catch(e) {}
+    }
+
+    const cleanPath = req.path.replace(/^\/api\//, '/').replace(/^\//, '');
+
+    const candidateUrls = [
+        // 1. Direct from known SPA asset directories (immediate 200 hit, zero delays)
+        `${targetOrigin}/assets/dashboard/${cleanPath}`,
+        `${targetOrigin}/assets/homepage/${cleanPath}`,
+        `${targetOrigin}/assets/${cleanPath}`,
+        // 2. Resolve relative to the active asset directory path (e.g. https://streamelements.com/assets/dashboard/...)
+        new URL(cleanPath, refDir).href,
+        // 3. Direct from target origin
+        `${targetOrigin}/${cleanPath}`
+    ];
+
+    for (const candidate of candidateUrls) {
+        try {
+            const response = await axios.get(candidate, {
                 responseType: 'arraybuffer',
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                    'Referer': targetOrigin
+                    'Referer': targetOrigin,
+                    ...(targetOrigin.includes('streamelements.com') && currentStreamElementsToken ? {
+                        'Authorization': `Bearer ${currentStreamElementsToken}`,
+                        'Cookie': `id_token_creator=${currentStreamElementsToken}; se-token=${currentStreamElementsToken}; token=${currentStreamElementsToken}`
+                    } : {})
                 },
-                timeout: 10000,
+                timeout: 8000,
                 validateStatus: () => true
             });
 
-            const contentType = response.headers['content-type'] || (req.path.endsWith('.js') ? 'application/javascript' : 'text/css');
-            res.setHeader('Content-Type', contentType);
-            res.setHeader('Access-Control-Allow-Origin', '*');
-            res.removeHeader('X-Frame-Options');
-            res.removeHeader('Content-Security-Policy');
-            return res.status(response.status).send(response.data);
-        } catch (e) {}
+            const ct = response.headers['content-type'] || '';
+            if (response.status === 200 && !ct.includes('text/html')) {
+                let finalContentType = ct;
+                if (req.path.endsWith('.js')) finalContentType = 'text/javascript';
+                else if (req.path.endsWith('.css')) finalContentType = 'text/css';
+                else if (req.path.endsWith('.json')) finalContentType = 'application/json';
+
+                res.setHeader('Content-Type', finalContentType);
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.removeHeader('X-Frame-Options');
+                res.removeHeader('Content-Security-Policy');
+                return res.status(200).send(response.data);
+            }
+        } catch (err) {}
     }
     next();
 });
