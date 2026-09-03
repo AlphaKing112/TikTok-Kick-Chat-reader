@@ -4085,6 +4085,9 @@ function getEmbedSource(tab) {
     if (tab.url.includes('streamelements.com/activity-feed')) {
         return '/activity-feed';
     }
+    if (tab.url.includes('streamelements.com/login')) {
+        return '/login';
+    }
     // If explicitly set, use that; otherwise auto-detect based on whether it's native embed
     const shouldProxy = tab.useProxy !== undefined ? tab.useProxy : !isNativeEmbedUrl(tab.url);
     if (shouldProxy) {
@@ -4545,8 +4548,8 @@ function renderTabs() {
                 <div class="custom-tab-container ${isActive ? 'active' : ''}" id="tab_view_${tab.id}" style="display: flex; flex-direction: column; height: 100%;">
                     <!-- Top Web Navigation & Control Toolbar -->
                     <div class="custom-web-toolbar">
-                        <span class="custom-tab-platform-icon" style="font-size: 1.1em; flex-shrink: 0;">${platform.icon}</span>
                         <div class="custom-url-bar">
+                            <span class="custom-tab-platform-icon" style="font-size: 1.1em; flex-shrink: 0;">${platform.icon}</span>
                             <span class="custom-url-title" title="${escapeHtml(tab.title)}">${escapeHtml(tab.title)}</span>
                             <span class="custom-url-separator">|</span>
                             <input 
@@ -4554,21 +4557,23 @@ function renderTabs() {
                                 class="custom-url-input" 
                                 id="tab_url_input_${tab.id}" 
                                 value="${escapeHtml(tab.rawUrl || tab.url)}" 
-                                placeholder="Enter any URL (e.g. kick.com, youtube.com, wikipedia.org)..."
+                                placeholder="Enter any URL (e.g. kick.com, youtube.com)..."
                                 onkeydown="if(event.key==='Enter'){event.preventDefault();navigateTabUrl('${tab.id}');}"
                                 title="Type or paste any URL and hit Enter"
                             >
                             <button class="custom-url-go-btn" onclick="navigateTabUrl('${tab.id}')" title="Navigate to URL">↵ Go</button>
                         </div>
-                        <button class="custom-web-btn" onclick="reloadTabFrame('${tab.id}')" title="Reload Webpage">🔄 Reload</button>
-                        ${tab.url.includes('streamelements') ? `
-                        <button class="custom-web-btn" onclick="promptStreamElementsToken('${tab.id}')" style="background: linear-gradient(135deg, rgba(88,166,255,0.25), rgba(145,70,255,0.3)); border-color: rgba(88,166,255,0.6); font-weight: bold; color: #79c0ff;" title="Connect StreamElements JWT Token to load live private dashboard & overlays">🔑 Connect SE Token</button>
-                        ` : ''}
-                        <button class="custom-web-btn" onclick="openTabLogin('${tab.id}')" title="Login Companion: Open direct login window for sites requiring browser sign-in / OAuth / Passkeys">🔑 Login</button>
-                        <button class="custom-web-btn proxy-toggle-btn" onclick="toggleProxyTab('${tab.id}')" title="Toggle Unframe Proxy for sites that block embedding">🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}</button>
-                        <button class="custom-web-btn" onclick="openTabExternal('${tab.id}')" title="Open in Popout / Companion Window">↗ Popout</button>
-                        <button class="custom-web-btn" onclick="editCustomTab('${tab.id}')" title="Edit Tab Title or URL">✏️ Edit</button>
-                        <button class="custom-web-btn" onclick="removeTab('${tab.id}', event)" title="Close Tab" style="color: #ff5555;">✕</button>
+                        <div class="custom-web-actions-row">
+                            <button class="custom-web-btn" onclick="reloadTabFrame('${tab.id}')" title="Reload Webpage">🔄 Reload</button>
+                            ${tab.url.includes('streamelements') ? `
+                            <button class="custom-web-btn" onclick="promptStreamElementsToken('${tab.id}')" style="background: linear-gradient(135deg, rgba(88,166,255,0.25), rgba(145,70,255,0.3)); border-color: rgba(88,166,255,0.6); font-weight: bold; color: #79c0ff;" title="Connect StreamElements JWT Token to load live private dashboard & overlays">🔑 Connect SE Token</button>
+                            ` : ''}
+                            <button class="custom-web-btn" onclick="openTabLogin('${tab.id}')" title="Login Companion: Open direct login window for sites requiring browser sign-in / OAuth / Passkeys">🔑 Login</button>
+                            <button class="custom-web-btn proxy-toggle-btn" onclick="toggleProxyTab('${tab.id}')" title="Toggle Unframe Proxy for sites that block embedding">🛡️ ${tab.useProxy ? 'Proxy: ON' : 'Proxy: OFF'}</button>
+                            <button class="custom-web-btn" onclick="openTabExternal('${tab.id}')" title="Open in Popout / Companion Window">↗ Popout</button>
+                            <button class="custom-web-btn" onclick="editCustomTab('${tab.id}')" title="Edit Tab Title or URL">✏️ Edit</button>
+                            <button class="custom-web-btn" onclick="removeTab('${tab.id}', event)" title="Close Tab" style="color: #ff5555;">✕</button>
+                        </div>
                     </div>
 
                     <!-- Live Interactive Embedded Webpage Frame -->

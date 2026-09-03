@@ -605,8 +605,17 @@ const handleUnframeProxy = async (req, res) => {
 app.all('/api/streamelements-proxy', handleUnframeProxy);
 app.all('/api/unframe-proxy', handleUnframeProxy);
 
-// Dedicated route to preserve SPA routing for StreamElements Dashboard
-app.all(['/dashboard', '/dashboard/*', '/activity-feed'], (req, res) => {
+// Dedicated route to preserve SPA routing for StreamElements Dashboard & Auth
+app.all([
+    '/dashboard', '/dashboard/*',
+    '/activity-feed',
+    '/login', '/login/*',
+    '/logout',
+    '/account', '/account/*',
+    '/overlays', '/overlays/*',
+    '/chatstats',
+    '/tip', '/tip/*'
+], (req, res) => {
     req.query.url = 'https://streamelements.com' + req.originalUrl;
     return handleUnframeProxy(req, res);
 });

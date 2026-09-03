@@ -1448,6 +1448,7 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     overflow-y: hidden;
     white-space: nowrap;
     scrollbar-width: thin;
+    box-sizing: border-box;
 }
 
 .custom-web-toolbar::-webkit-scrollbar {
@@ -1460,7 +1461,7 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 }
 
 .custom-url-bar {
-    flex: 1;
+    flex: 1 1 auto;
     background: #0e0f16;
     border: 1px solid #2e3144;
     border-radius: 20px;
@@ -1468,7 +1469,9 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     display: flex;
     align-items: center;
     gap: 8px;
-    min-width: 0;
+    min-width: 140px;
+    box-sizing: border-box;
+    overflow: hidden;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -1495,8 +1498,8 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
 }
 
 .custom-url-input {
-    flex: 1;
-    min-width: 60px;
+    flex: 1 1 auto;
+    min-width: 0 !important; /* CRITICAL: Allows input to shrink inside flex container without overflowing */
     background: transparent;
     border: none;
     color: #a4abbf;
@@ -1505,6 +1508,7 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    box-sizing: border-box;
 }
 
 .custom-url-input:focus {
@@ -1528,6 +1532,13 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     opacity: 0.9;
 }
 
+.custom-web-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
 .custom-web-btn {
     background: #252838;
     color: #d0d4e4;
@@ -1540,8 +1551,10 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     align-items: center;
     gap: 5px;
     flex-shrink: 0;
+    white-space: nowrap;
     transition: all 0.2s;
 }
+
 .custom-web-btn:hover {
     background: #33374d;
     color: #fff;
@@ -1568,22 +1581,53 @@ body.hide-tiktok-joins .tiktok-message.join-msg {
     -webkit-overflow-scrolling: touch;
 }
 
-@media (max-width: 600px) {
+/* Responsive Mobile Web Split-View Toolbar */
+@media (max-width: 768px) {
     .custom-web-toolbar {
-        padding: 6px 8px;
+        flex-direction: column;
+        align-items: stretch;
+        padding: 6px 10px;
         gap: 6px;
+        height: auto;
+        overflow-x: visible;
+        overflow-y: visible;
+        white-space: normal;
     }
     
     .custom-url-bar {
-        font-size: 0.78em;
-        padding: 4px 8px;
-        min-width: 0;
+        width: 100% !important;
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+        padding: 4px 8px 4px 10px;
+    }
+
+    .custom-url-title,
+    .custom-url-separator {
+        display: none !important; /* Save precious mobile space, tab header already shows title */
+    }
+
+    .custom-url-input {
+        font-size: 14px !important; /* Clear readable size on mobile */
+    }
+
+    .custom-web-actions-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+    }
+
+    .custom-web-actions-row::-webkit-scrollbar {
+        display: none;
     }
 
     .custom-web-btn {
-        padding: 6px 10px;
-        font-size: 0.8em;
-        white-space: nowrap;
+        padding: 5px 10px;
+        font-size: 0.78em;
     }
 }
 
